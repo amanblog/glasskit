@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Liquid Glass — playground</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { overflow: hidden; background: #0b0b10; color: #fff; }
+
+  /* the backdrop everything refracts. CSS/SVG modes refract this live <canvas>;
+     WebGL mode samples the very same canvas as its texture. */
+  #bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+
+  #stage { position: fixed; inset: 0; z-index: 1; }
+
+  /* THE glass element. Could be any div/button/shape — nothing here is glass-specific
+     except border-radius. The engine reads this box and follows it. */
+  #glass {
+    position: absolute; left: 120px; top: 160px;
+    width: 360px; height: 230px; border-radius: 32px;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 22px; cursor: grab; user-select: none; color: #fff;
+    text-shadow: 0 1px 8px rgba(0,0,0,.35);
+  }
+  #glass.dragging { cursor: grabbing; }
+  #glass h2 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -.01em; }
+  #glass p  { margin: 4px 0 0; font-size: 13px; opacity: .85; }
+
+  #btn {
+    position: absolute; left: 540px; top: 250px;
+    padding: 16px 30px; border: 0; border-radius: 999px;
+    font-size: 16px; font-weight: 600; color: #fff; cursor: grab;
+    text-shadow: 0 1px 6px rgba(0,0,0,.4); z-index: 1;
+  }
+
+  /* control panel */
+  #panel {
+    position: fixed; top: 16px; right: 16px; width: 280px; z-index: 10;
+    background: rgba(20,20,28,.82); backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,.1); border-radius: 18px;
+    padding: 16px 18px; font-size: 12px; max-height: calc(100vh - 32px); overflow:auto;
+  }
+  #panel h1 { font-size: 13px; margin: 0 0 4px; letter-spacing: .04em; text-transform: uppercase; opacity:.6;}
+  #panel .hint { font-size: 11px; opacity:.5; margin: 0 0 14px; line-height:1.4;}
+  .row { margin: 11px 0; }
+  .row label { display:flex; justify-content:space-between; margin-bottom: 5px; opacity:.85; }
+  .row label b { font-weight: 600; opacity:.95; }
+  input[type=range]{ width:100%; accent-color:#a78bfa; }
+  select { width:100%; background:#15151d; color:#fff; border:1px solid rgba(255,255,255,.15); border-radius:8px; padding:7px; font-size:12px;}
+  .seg { display:flex; gap:6px; }
+  .seg button { flex:1; background:#15151d; color:#fff; border:1px solid rgba(255,255,255,.15); border-radius:8px; padding:8px 0; font-size:12px; cursor:pointer;}
+  .seg button.on { background:#a78bfa; color:#15151d; border-color:#a78bfa; font-weight:700;}
+  #warn { color:#fbbf24; font-size:11px; margin-top:8px; line-height:1.4; min-height:14px;}
+</style>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+  <div id="stage">
+    <div id="glass"><h2>Liquid Glass</h2><p>Drag me across the colors →</p></div>
+    <button id="btn">Glass button</button>
+  </div>
+
+  <div id="panel">
+    <h1>Glass engine</h1>
+    <p class="hint">Same params as Figma's Glass effect. Drag the card/button over the artwork to see refraction.</p>
+
+    <div class="row">
+      <label>Mode</label>
+      <div class="seg" id="modeSeg">
+        <button data-m="css">CSS</button>
+        <button data-m="svg" class="on">SVG</button>
+        <button data-m="webgl">WebGL</button>
+      </div>
+      <div id="warn"></div>
+    </div>
+
+    <div class="row"><label>Shape <b id="shapeV"></b></label>
+      <select id="shape">
+        <option value="card">Rounded card</option>
+        <option value="pill">Pill</option>
+        <option value="circle">Circle</option>
+        <option value="sharp">Sharp rectangle</option>
+      </select>
+    </div>
+
+    <div class="row"><label>Frost (blur) <b id="frostV"></b></label><input id="frost" type="range" min="0" max="30" step="1" value="6"></div>
+    <div class="row"><label>Refraction <b id="refractionV"></b></label><input id="refraction" type="range" min="0" max="200" step="1" value="90"></div>
+    <div class="row"><label>Depth (bezel) <b id="depthV"></b></label><input id="depth" type="range" min="2" max="80" step="1" value="22"></div>
+    <div class="row"><label>Dispersion <b id="dispersionV"></b></label><input id="dispersion" type="range" min="0" max="1" step="0.02" value="0.4"></div>
+    <div class="row"><label>Splay <b id="splayV"></b></label><input id="splay" type="range" min="0" max="1" step="0.02" value="0"></div>
+    <div class="row"><label>Light angle <b id="lightAngleV"></b></label><input id="lightAngle" type="range" min="-180" max="180" step="1" value="-45"></div>
+    <div class="row"><label>Light intensity <b id="lightIntensityV"></b></label><input id="lightIntensity" type="range" min="0" max="1" step="0.02" value="0.8"></div>
+    <div class="row"><label>Tint opacity <b id="tintOpacityV"></b></label><input id="tintOpacity" type="range" min="0" max="0.4" step="0.01" value="0.08"></div>
+  </div>
+
+<script src="liquid-glass.js"></script>
+<script>
+(function () {
+  /* ---------- paint a colorful backdrop onto the canvas ---------- */
+  var bg = document.getElementById('bg'), bx = bg.getContext('2d');
+  function paint() {
+    var w = bg.width = innerWidth, h = bg.height = innerHeight;
+    var g = bx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#ff7a59'); g.addColorStop(.4, '#a855f7'); g.addColorStop(.7, '#3b82f6'); g.addColorStop(1, '#06b6d4');
+    bx.fillStyle = g; bx.fillRect(0, 0, w, h);
+    var dots = [['#fde047',180],['#34d399',150],['#fb7185',160],['#22d3ee',130],['#c084fc',170]];
+    for (var i = 0; i < 26; i++) {
+      var d = dots[i % dots.length];
+      bx.globalAlpha = .55; bx.fillStyle = d[0];
+      bx.beginPath(); bx.arc((i*137.5)%w, (i*223.1)%h, d[1]*0.5, 0, 7); bx.fill();
+    }
+    bx.globalAlpha = .12; bx.fillStyle = '#000';
+    for (var y = 0; y < h; y += 46) bx.fillRect(0, y, w, 18);
+    bx.globalAlpha = .9; bx.fillStyle = '#fff';
+    bx.font = '800 84px -apple-system, sans-serif';
+    bx.fillText('LOOP', 60, h - 70); bx.fillText('GLASS', w - 360, 140);
+    bx.globalAlpha = 1;
+  }
+  paint(); addEventListener('resize', paint);
+
+  /* ---------- options state ---------- */
+  var opts = {
+    mode: 'svg', frost: 6, refraction: 90, depth: 22, dispersion: 0.4,
+    splay: 0, lightAngle: -45, lightIntensity: 0.8, tintOpacity: 0.08,
+    background: bg /* webgl samples the live backdrop canvas */
+  };
+
+  var els = { card: document.getElementById('glass'), btn: document.getElementById('btn') };
+  var instances = {};
+  function rebuild() {
+    Object.keys(instances).forEach(function (k) { instances[k].destroy(); });
+    instances.card = Glasskit.apply(els.card, opts);
+    instances.btn  = Glasskit.apply(els.btn, Object.assign({}, opts, { depth: Math.min(opts.depth, 18) }));
+    document.getElementById('warn').textContent =
+      (opts.mode === 'svg' && !Glasskit.isChromium())
+        ? '⚠ SVG refraction needs Chromium — you\'ll see blur only. Try WebGL or CSS.'
+        : (opts.mode === 'webgl' ? 'WebGL refracts the backdrop canvas (works cross-browser).' : '');
+  }
+
+  /* ---------- wire sliders ---------- */
+  var sliders = ['frost','refraction','depth','dispersion','splay','lightAngle','lightIntensity','tintOpacity'];
+  function syncLabels() {
+    sliders.forEach(function (k) {
+      var v = opts[k]; var el = document.getElementById(k + 'V');
+      if (el) el.textContent = (k === 'lightAngle') ? v + '°' : v;
+    });
+  }
+  sliders.forEach(function (k) {
+    document.getElementById(k).addEventListener('input', function (e) {
+      opts[k] = parseFloat(e.target.value); syncLabels();
+      instances.card.update(opts); instances.btn.update(Object.assign({}, opts, { depth: Math.min(opts.depth, 18) }));
+    });
+  });
+
+  document.querySelectorAll('#modeSeg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('#modeSeg button').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on'); opts.mode = b.dataset.m; rebuild();
+    });
+  });
+
+  document.getElementById('shape').addEventListener('change', function (e) {
+    var c = els.card, v = e.target.value;
+    if (v === 'card')   { c.style.width='360px'; c.style.height='230px'; c.style.borderRadius='32px'; }
+    if (v === 'pill')   { c.style.width='360px'; c.style.height='120px'; c.style.borderRadius='60px'; }
+    if (v === 'circle') { c.style.width='240px'; c.style.height='240px'; c.style.borderRadius='50%'; }
+    if (v === 'sharp')  { c.style.width='360px'; c.style.height='230px'; c.style.borderRadius='2px'; }
+    rebuild();
+  });
+
+  /* ---------- drag ---------- */
+  function drag(el) {
+    var sx, sy, ox, oy, down = false;
+    el.addEventListener('pointerdown', function (e) {
+      down = true; el.classList.add('dragging'); el.setPointerCapture(e.pointerId);
+      sx = e.clientX; sy = e.clientY; ox = parseFloat(el.style.left); oy = parseFloat(el.style.top);
+    });
+    el.addEventListener('pointermove', function (e) {
+      if (!down) return; el.style.left = (ox + e.clientX - sx) + 'px'; el.style.top = (oy + e.clientY - sy) + 'px';
+    });
+    el.addEventListener('pointerup', function (e) { down = false; el.classList.remove('dragging'); });
+  }
+  drag(els.card); drag(els.btn);
+
+  syncLabels(); rebuild();
+})();
+</script>
+</body>
+</html>

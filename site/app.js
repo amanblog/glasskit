@@ -1,0 +1,293 @@
+/* Glasskit generator — state, live preview, presets, multi-format code export */
+(function () {
+  "use strict";
+
+  var state = {
+    mode: "svg", shape: "card", scene: "mesh",
+    w: 340, h: 210, radius: 30,
+    frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0,
+    lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1,
+    tintOpacity: 0.08,
+  };
+
+  var $ = function (s) { return document.querySelector(s); };
+  var glass = $("#glass"), sceneDom = $("#sceneDom"), sceneCanvas = $("#sceneCanvas");
+  var inst = null, codeTab = "react";
+
+  /* ----------------------------- scenes ----------------------------- */
+  var SCENES = {
+    mesh: { grad: ["#ff7a59", "#a855f7", "#3b82f6", "#06b6d4"], dots: ["#fde047", "#34d399", "#fb7185", "#22d3ee"] },
+    sunset: { grad: ["#f59e0b", "#ef4444", "#db2777", "#7c3aed"], dots: ["#fff7ed", "#fecaca", "#fbcfe8", "#ddd6fe"] },
+    ocean: { grad: ["#0ea5e9", "#2563eb", "#4f46e5", "#0f172a"], dots: ["#67e8f9", "#a5b4fc", "#bae6fd", "#e0e7ff"] },
+    mono: { grad: ["#e5e7eb", "#9ca3af", "#4b5563", "#111827"], dots: ["#ffffff", "#d1d5db", "#9ca3af", "#6b7280"] },
+  };
+  var DOT_POS = [[12, 18], [70, 12], [40, 55], [85, 60], [22, 78], [60, 85], [90, 30], [8, 45]];
+
+  function buildDomScene() {
+    var s = SCENES[state.scene];
+    var html = "";
+    DOT_POS.forEach(function (p, i) {
+      var size = 90 + (i % 4) * 40;
+      html += '<div style="position:absolute;left:' + p[0] + '%;top:' + p[1] + '%;width:' + size +
+        'px;height:' + size + 'px;border-radius:50%;background:' + s.dots[i % s.dots.length] +
+        ';opacity:.55;transform:translate(-50%,-50%);filter:blur(2px)"></div>';
+    });
+    html += '<div style="position:absolute;left:5%;bottom:6%;font:800 84px ' +
+      'system-ui;color:#fff;opacity:.9">LOOP</div>';
+    html += '<div style="position:absolute;right:6%;top:8%;font:800 64px system-ui;color:#fff;opacity:.85">GLASS</div>';
+    sceneDom.style.background = "linear-gradient(135deg," + s.grad.join(",") + ")";
+    sceneDom.innerHTML = html;
+  }
+  function paintCanvasScene() {
+    var s = SCENES[state.scene], r = $("#stage").getBoundingClientRect();
+    var w = sceneCanvas.width = Math.round(r.width), h = sceneCanvas.height = Math.round(r.height);
+    var ctx = sceneCanvas.getContext("2d");
+    var g = ctx.createLinearGradient(0, 0, w, h);
+    s.grad.forEach(function (c, i) { g.addColorStop(i / (s.grad.length - 1), c); });
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    DOT_POS.forEach(function (p, i) {
+      ctx.globalAlpha = .55; ctx.fillStyle = s.dots[i % s.dots.length];
+      ctx.beginPath(); ctx.arc(p[0] / 100 * w, p[1] / 100 * h, (90 + (i % 4) * 40) / 2, 0, 7); ctx.fill();
+    });
+    ctx.globalAlpha = .9; ctx.fillStyle = "#fff"; ctx.font = "800 84px system-ui";
+    ctx.fillText("LOOP", w * .05, h * .94); ctx.font = "800 64px system-ui";
+    ctx.fillText("GLASS", w * .7, h * .16); ctx.globalAlpha = 1;
+  }
+
+  function buildSwatches() {
+    var wrap = $("#swatches"); wrap.innerHTML = "";
+    Object.keys(SCENES).forEach(function (k) {
+      var b = document.createElement("button");
+      b.className = "swatch" + (k === state.scene ? " on" : "");
+      b.style.background = "linear-gradient(135deg," + SCENES[k].grad.join(",") + ")";
+      b.title = k;
+      b.onclick = function () { state.scene = k; renderScene(); rebuild(); };
+      wrap.appendChild(b);
+    });
+  }
+  function renderScene() {
+    buildDomScene(); buildSwatches();
+    if (state.mode === "webgl") { paintCanvasScene(); sceneCanvas.style.display = "block"; sceneDom.style.display = "none"; }
+    else { sceneCanvas.style.display = "none"; sceneDom.style.display = "block"; }
+  }
+
+  /* --------------------------- apply engine --------------------------- */
+  function glassOpts() {
+    var o = {
+      mode: state.mode, frost: state.frost, refraction: state.refraction, depth: state.depth,
+      dispersion: state.dispersion, splay: state.splay, lightAngle: state.lightAngle,
+      lightIntensity: state.lightIntensity, curvature: state.curvature, convexity: state.convexity,
+      tintOpacity: state.tintOpacity, radius: state.radius,
+    };
+    if (state.mode === "svg-clone") o.background = sceneDom;
+    if (state.mode === "webgl") o.background = sceneCanvas;
+    return o;
+  }
+  function rebuild() {
+    if (inst) inst.destroy();
+    glass.style.width = state.w + "px"; glass.style.height = state.h + "px";
+    glass.style.borderRadius = (state.shape === "circle" ? "50%" : state.radius + "px");
+    inst = Glasskit.apply(glass, glassOpts());
+    showResolved(); buildCode();
+  }
+  function liveUpdate() {
+    glass.style.borderRadius = (state.shape === "circle" ? "50%" : state.radius + "px");
+    if (inst) inst.update(glassOpts());
+    buildCode();
+  }
+  function showResolved() {
+    var resolved = Glasskit.pickMode(state.mode, state.mode === "svg-clone" || state.mode === "webgl");
+    var note = $("#modeNote"), res = $("#resolved");
+    res.innerHTML = "engine: <b>" + (inst ? inst.mode : resolved) + "</b>";
+    var m = inst ? inst.mode : resolved, txt = "", warn = false;
+    if (m === "css") txt = "Blur only — no refraction, but works in every browser.";
+    else if (m === "svg") { txt = "Real refraction on the live backdrop. Chromium only — falls back to blur in Safari/Firefox."; warn = !Glasskit.isChromium(); }
+    else if (m === "svg-clone") txt = "Real refraction in Chrome / Safari / Firefox (clones the backdrop). DOM only, not <canvas>.";
+    else if (m === "webgl") txt = "Real refraction in a shader of a supplied background. Cross-browser.";
+    if (state.mode === "auto") txt = "Auto picked “" + m + "” for this browser. " + txt;
+    note.textContent = txt; note.className = "modeNote" + (warn ? " warn" : "");
+  }
+
+  /* ----------------------------- controls ----------------------------- */
+  document.querySelectorAll("#modeSeg button").forEach(function (b) {
+    b.onclick = function () {
+      document.querySelectorAll("#modeSeg button").forEach(function (x) { x.classList.remove("on"); });
+      b.classList.add("on"); state.mode = b.dataset.m; renderScene(); rebuild();
+    };
+  });
+
+  var SHAPES = { card: [340, 210, 30], button: [180, 56, 16], pill: [320, 110, 55], circle: [220, 220, 110], square: [300, 200, 4] };
+  $("#shape").onchange = function (e) {
+    state.shape = e.target.value; var s = SHAPES[state.shape];
+    state.w = s[0]; state.h = s[1]; state.radius = s[2];
+    var rs = document.getElementById("sl_radius"); if (rs) { rs.value = s[2]; document.getElementById("v_radius").textContent = s[2]; }
+    rebuild();
+  };
+
+  var FIGMA = [
+    ["frost", "Frost", 0, 30, 1, ""], ["refraction", "Refraction", 0, 200, 1, ""],
+    ["depth", "Depth", 2, 80, 1, ""], ["dispersion", "Dispersion", 0, 1, 0.02, ""],
+    ["splay", "Splay", 0, 1, 0.02, ""], ["lightAngle", "Light angle", -180, 180, 1, "°"],
+    ["lightIntensity", "Light intensity", 0, 1, 0.02, ""],
+  ];
+  var OPTICAL = [
+    ["curvature", "Curvature", 1, 6, 0.1, ""], ["convexity", "Convexity", -1, 1, 0.05, ""],
+    ["tintOpacity", "Tint opacity", 0, 0.4, 0.01, ""], ["radius", "Corner radius", 0, 120, 1, ""],
+  ];
+  function buildSliders(list, host) {
+    host.innerHTML = "";
+    list.forEach(function (p) {
+      var k = p[0], row = document.createElement("div"); row.className = "row";
+      row.innerHTML = '<label>' + p[1] + ' <b id="v_' + k + '">' + state[k] + p[5] + '</b></label>' +
+        '<input id="sl_' + k + '" type="range" min="' + p[2] + '" max="' + p[3] + '" step="' + p[4] + '" value="' + state[k] + '">';
+      host.appendChild(row);
+      row.querySelector("input").addEventListener("input", function (e) {
+        state[k] = parseFloat(e.target.value);
+        document.getElementById("v_" + k).textContent = state[k] + p[5];
+        liveUpdate();
+      });
+    });
+  }
+
+  var PRESETS = {
+    "Frosted card": { shape: "card", frost: 10, refraction: 60, depth: 26, dispersion: 0.2, splay: 0.3, lightAngle: -45, lightIntensity: 0.7, curvature: 2.2, convexity: 1, tintOpacity: 0.1 },
+    "iOS button": { shape: "button", frost: 6, refraction: 80, depth: 14, dispersion: 0.35, splay: 0.1, lightAngle: -60, lightIntensity: 0.9, curvature: 2.4, convexity: 1, tintOpacity: 0.08 },
+    "Dock": { shape: "pill", frost: 8, refraction: 50, depth: 30, dispersion: 0.15, splay: 0.4, lightAngle: -90, lightIntensity: 0.7, curvature: 2, convexity: 1, tintOpacity: 0.07 },
+    "Modal": { shape: "card", frost: 16, refraction: 40, depth: 24, dispersion: 0.1, splay: 0.5, lightAngle: -45, lightIntensity: 0.6, curvature: 2, convexity: 1, tintOpacity: 0.12 },
+    "Lens": { shape: "circle", frost: 2, refraction: 160, depth: 50, dispersion: 0.6, splay: 0, lightAngle: -45, lightIntensity: 0.85, curvature: 3, convexity: 1, tintOpacity: 0.04 },
+    "Magnifier": { shape: "circle", frost: 0, refraction: 120, depth: 60, dispersion: 0.25, splay: 0, lightAngle: -30, lightIntensity: 0.8, curvature: 4, convexity: 1, tintOpacity: 0.02 },
+    "Reset": Object.assign({ shape: "card" }, { frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0, lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1, tintOpacity: 0.08 }),
+  };
+  function buildPresets() {
+    var host = $("#presets"); host.innerHTML = "";
+    Object.keys(PRESETS).forEach(function (name) {
+      var c = document.createElement("button"); c.className = "chip"; c.textContent = name;
+      c.onclick = function () { applyPreset(PRESETS[name]); }; host.appendChild(c);
+    });
+  }
+  function applyPreset(p) {
+    Object.keys(p).forEach(function (k) { state[k] = p[k]; });
+    if (p.shape) { var s = SHAPES[p.shape]; state.w = s[0]; state.h = s[1]; state.radius = s[2]; $("#shape").value = p.shape; }
+    buildSliders(FIGMA, $("#figmaSliders")); buildSliders(OPTICAL, $("#opticalSliders"));
+    rebuild();
+  }
+
+  /* ------------------------------ drag ------------------------------ */
+  (function () {
+    var sx, sy, ox, oy, down = false;
+    glass.addEventListener("pointerdown", function (e) {
+      down = true; glass.classList.add("drag"); glass.setPointerCapture(e.pointerId);
+      sx = e.clientX; sy = e.clientY; ox = parseFloat(glass.style.left) || 0; oy = parseFloat(glass.style.top) || 0;
+    });
+    glass.addEventListener("pointermove", function (e) {
+      if (!down) return; glass.style.left = (ox + e.clientX - sx) + "px"; glass.style.top = (oy + e.clientY - sy) + "px";
+    });
+    glass.addEventListener("pointerup", function () { down = false; glass.classList.remove("drag"); });
+  })();
+
+  /* -------------------------- code generators -------------------------- */
+  function num(v) { return Number.isInteger(v) ? v : parseFloat(v.toFixed(3)); }
+  function needsBg() { return state.mode === "svg-clone" || state.mode === "webgl"; }
+  function jsOpts(indent) {
+    var p = ["mode: '" + state.mode + "'",
+      "frost: " + num(state.frost), "refraction: " + num(state.refraction), "depth: " + num(state.depth),
+      "dispersion: " + num(state.dispersion), "splay: " + num(state.splay), "lightAngle: " + num(state.lightAngle),
+      "lightIntensity: " + num(state.lightIntensity), "curvature: " + num(state.curvature),
+      "convexity: " + num(state.convexity), "tintOpacity: " + num(state.tintOpacity), "radius: " + num(state.radius)];
+    if (needsBg()) p.push("background: '#bg'  // the element/canvas to refract");
+    return indent + p.join(",\n" + indent);
+  }
+  function styleStr() {
+    return "width:" + state.w + "px;height:" + state.h + "px;border-radius:" +
+      (state.shape === "circle" ? "50%" : state.radius + "px");
+  }
+
+  var GEN = {
+    react: function () {
+      var attrs = ["mode=\"" + state.mode + "\"",
+        "frost={" + num(state.frost) + "} refraction={" + num(state.refraction) + "} depth={" + num(state.depth) + "}",
+        "dispersion={" + num(state.dispersion) + "} splay={" + num(state.splay) + "}",
+        "lightAngle={" + num(state.lightAngle) + "} lightIntensity={" + num(state.lightIntensity) + "}",
+        "curvature={" + num(state.curvature) + "} convexity={" + num(state.convexity) + "} tintOpacity={" + num(state.tintOpacity) + "}"];
+      var bg = needsBg() ? "\n      background=\"#bg\"" : "";
+      return "// npm i glasskit-js\nimport Glass from 'glasskit-js/react';\n\nexport default function Demo() {\n  return (\n    <Glass\n      " +
+        attrs.join("\n      ") + bg + "\n      radius={" + num(state.radius) + "}\n      style={{ width: " + state.w + ", height: " + state.h +
+        ", borderRadius: " + (state.shape === "circle" ? "'50%'" : state.radius) + " }}\n    >\n      Liquid Glass\n    </Glass>\n  );\n}";
+    },
+    vue: function () {
+      return "<!-- npm i glasskit-js -->\n<script setup>\nimport { ref, onMounted, onBeforeUnmount } from 'vue'\nimport Glass from 'glasskit-js'\n\nconst el = ref()\nlet g\nonMounted(() => {\n  g = Glasskit.apply(el.value, {\n" +
+        jsOpts("    ") + "\n  })\n})\nonBeforeUnmount(() => g && g.destroy())\n<\/script>\n\n<template>\n  <div ref=\"el\" style=\"" + styleStr() + "\">Liquid Glass</div>\n</template>";
+    },
+    vanilla: function () {
+      var bgEl = needsBg() ? '<div id="bg"><!-- your background/content --></div>\n' : "";
+      return "<!-- 1. load the engine -->\n<script src=\"https://unpkg.com/glasskit-js\"><\/script>\n\n<!-- 2. your markup -->\n" +
+        bgEl + '<div id="glass" style="' + styleStr() + '">Liquid Glass</div>\n\n<script>\n  Glasskit.apply(document.querySelector(\'#glass\'), {\n' +
+        jsOpts("    ") + "\n  });\n<\/script>";
+    },
+    "web component": function () {
+      var bg = needsBg() ? ' background="#bg"' : "";
+      return "<!-- registers <glass-kit> automatically -->\n<script src=\"https://unpkg.com/glasskit-js\"><\/script>\n\n<glass-kit mode=\"" + state.mode +
+        "\"\n  frost=\"" + num(state.frost) + "\" refraction=\"" + num(state.refraction) + "\" depth=\"" + num(state.depth) +
+        "\" dispersion=\"" + num(state.dispersion) + "\"\n  splay=\"" + num(state.splay) + "\" light-angle=\"" + num(state.lightAngle) +
+        "\" light-intensity=\"" + num(state.lightIntensity) + "\"\n  curvature=\"" + num(state.curvature) + "\" convexity=\"" + num(state.convexity) +
+        "\" tint-opacity=\"" + num(state.tintOpacity) + "\" radius=\"" + num(state.radius) + "\"" + bg +
+        "\n  style=\"" + styleStr() + ";display:flex;align-items:flex-end;padding:20px;color:#fff\">\n  Liquid Glass\n</glass-kit>";
+    },
+    css: function () {
+      var li = state.lightIntensity;
+      return "/* Pure CSS — every browser, but BLUR ONLY (no refraction).\n   For real refraction use the React / Vue / Vanilla / Web Component tabs. */\n.glass {\n  width: " +
+        state.w + "px; height: " + state.h + "px;\n  border-radius: " + (state.shape === "circle" ? "50%" : state.radius + "px") + ";\n  background: rgba(255, 255, 255, " + num(state.tintOpacity) +
+        ");\n  backdrop-filter: blur(" + num(state.frost) + "px) saturate(1.4) brightness(1.04);\n  -webkit-backdrop-filter: blur(" + num(state.frost) +
+        "px) saturate(1.4) brightness(1.04);\n  box-shadow:\n    inset 0 0 0 1px rgba(255,255,255," + num(0.3 * li) +
+        "),\n    inset 1.4px 1.4px 2px rgba(255,255,255," + num(0.5 * li) + "),\n    0 8px 30px rgba(0,0,0,0.18);\n}";
+    },
+    tailwind: function () {
+      var li = Math.round(state.lightIntensity * 100) / 100;
+      return "<!-- Pure CSS via Tailwind (blur only, no refraction). Arbitrary values mirror your sliders. -->\n<div class=\"\n  w-[" +
+        state.w + "px] h-[" + state.h + "px] rounded-[" + (state.shape === "circle" ? "9999px" : state.radius + "px") + "]\n  bg-white/[" + num(state.tintOpacity) +
+        "]\n  backdrop-blur-[" + num(state.frost) + "px] backdrop-saturate-150 backdrop-brightness-105\n  shadow-[inset_0_0_0_1px_rgba(255,255,255," + num(0.3 * li) +
+        "),0_8px_30px_rgba(0,0,0,0.18)]\n\">\n  Liquid Glass\n</div>";
+    },
+  };
+  var TABS = ["react", "vue", "vanilla", "web component", "css", "tailwind"];
+
+  function escapeHtml(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function highlight(code) {
+    var out = escapeHtml(code);
+    // comments + strings in one non-overlapping pass
+    out = out.replace(/(\/\/[^\n]*|&lt;!--[\s\S]*?--&gt;|\/\*[\s\S]*?\*\/)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,
+      function (m, com, str) {
+        if (com) return '<span class="tok-com">' + com + "</span>";
+        return '<span class="tok-str">' + str + "</span>";
+      });
+    out = out.replace(/\b(import|from|export|default|function|return|const|let|new|onMounted|onBeforeUnmount|ref)\b/g, '<span class="tok-key">$1</span>');
+    return out;
+  }
+  function buildTabs() {
+    var host = $("#tabs"); host.innerHTML = "";
+    TABS.forEach(function (t) {
+      var b = document.createElement("button"); b.className = "tab" + (t === codeTab ? " on" : "");
+      b.textContent = t; b.onclick = function () { codeTab = t; buildTabs(); buildCode(); }; host.appendChild(b);
+    });
+  }
+  function buildCode() {
+    var code = GEN[codeTab](); $("#code").innerHTML = highlight(code);
+    $("#copyBtn").dataset.raw = code; $("#copyBtn").textContent = "Copy"; $("#copyBtn").className = "copy";
+  }
+  $("#copyBtn").onclick = function () {
+    var raw = this.dataset.raw || "";
+    navigator.clipboard.writeText(raw).then(function () {
+      var b = $("#copyBtn"); b.textContent = "Copied ✓"; b.className = "copy done";
+      setTimeout(function () { b.textContent = "Copy"; b.className = "copy"; }, 1400);
+    });
+  };
+
+  /* ------------------------------ boot ------------------------------ */
+  window.addEventListener("resize", function () { if (state.mode === "webgl") paintCanvasScene(); });
+  renderScene();
+  buildSliders(FIGMA, $("#figmaSliders"));
+  buildSliders(OPTICAL, $("#opticalSliders"));
+  buildPresets();
+  buildTabs();
+  rebuild();
+})();

@@ -1,0 +1,6 @@
+node_modules/
+bench/smoke-*.png
+bench/results.json
+bench/results.csv
+.DS_Store
+*.log

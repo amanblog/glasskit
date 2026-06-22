@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glasskit — the Liquid Glass generator (CSS · SVG · WebGL)</title>
+<meta name="description" content="Tune Apple/Figma Liquid Glass visually, switch the rendering engine (CSS · SVG · clone · WebGL), and copy the code for React, Vue, vanilla, web component, CSS or Tailwind. Real refraction, cross-browser, any shape. No install.">
+<meta name="keywords" content="liquid glass, glassmorphism, apple liquid glass, ios 26, figma glass, css generator, backdrop-filter, refraction, feDisplacementMap, webgl glass, react, tailwind">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="canonical" href="https://glasskit.dev/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Glasskit — the Liquid Glass generator">
+<meta property="og:description" content="Real Liquid Glass for the web. Switch engine (CSS · SVG · clone · WebGL), copy code for any framework, benchmark the cost. No install.">
+<meta property="og:image" content="og.png">
+<meta property="og:url" content="https://glasskit.dev/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Glasskit — the Liquid Glass generator">
+<meta name="twitter:description" content="Real Liquid Glass for the web. 4 engines, any framework, benchmarked.">
+<meta name="twitter:image" content="og.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23a78bfa'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0a0a0f; --bg2:#0e0e16; --panel:rgba(255,255,255,.04); --panel2:rgba(255,255,255,.02);
+    --bd:rgba(255,255,255,.09); --bd2:rgba(255,255,255,.06);
+    --tx:#f5f5f7; --mut:#9aa0ac; --mut2:#6b7280;
+    --acc:#a78bfa; --acc2:#7c3aed; --ok:#34d399; --warn:#fbbf24;
+    --r:14px; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--tx);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer}
+
+  /* header */
+  header{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;
+    padding:12px 20px;background:rgba(10,10,15,.7);backdrop-filter:blur(16px);border-bottom:1px solid var(--bd2)}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:680;letter-spacing:-.01em}
+  .logo{width:26px;height:26px;border-radius:8px;background:
+    radial-gradient(120% 120% at 30% 20%,#fff6,#fff0 40%),linear-gradient(135deg,var(--acc),#22d3ee);
+    box-shadow:inset 0 0 0 1px #ffffff55, 0 2px 10px #7c3aed66}
+  .brand small{color:var(--mut);font-weight:500;font-size:12px}
+  header .sp{flex:1}
+  .hlink{color:var(--mut);font-size:13px;padding:7px 11px;border-radius:9px}
+  .hlink:hover{color:var(--tx);background:var(--panel)}
+  .hlink.cta{color:var(--tx);background:var(--acc2);font-weight:600}
+  .hlink.cta:hover{background:#6d28d9}
+
+  /* layout */
+  main{display:grid;grid-template-columns:1fr 360px;gap:18px;padding:18px 20px;max-width:1500px;margin:0 auto}
+  @media (max-width:980px){main{grid-template-columns:1fr}}
+
+  /* preview stage */
+  .stageWrap{position:relative;border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;min-height:520px;background:#111}
+  .scene{position:absolute;inset:0}
+  #sceneCanvas{position:absolute;inset:0;width:100%;height:100%;display:none}
+  .stageBar{position:absolute;left:12px;top:12px;z-index:5;display:flex;gap:8px;align-items:center}
+  .swatch{width:26px;height:26px;border-radius:8px;border:2px solid #ffffff44;cursor:pointer;padding:0}
+  .swatch.on{border-color:#fff;box-shadow:0 0 0 2px var(--acc)}
+  .resolved{position:absolute;right:12px;top:12px;z-index:5;font-size:11px;color:#fff;background:#0008;
+    padding:6px 10px;border-radius:8px;backdrop-filter:blur(8px);max-width:60%}
+  .resolved b{color:var(--acc)}
+  .hintbar{position:absolute;left:12px;bottom:12px;z-index:5;font-size:11px;color:#fff;background:#0008;padding:6px 10px;border-radius:8px}
+
+  /* the glass element */
+  #glass{position:absolute;left:140px;top:170px;width:340px;height:210px;border-radius:30px;
+    display:flex;flex-direction:column;justify-content:flex-end;padding:20px;color:#fff;cursor:grab;
+    user-select:none;text-shadow:0 1px 10px rgba(0,0,0,.35)}
+  #glass.drag{cursor:grabbing}
+  #glass .gt{font-size:20px;font-weight:650;letter-spacing:-.01em;position:relative;z-index:3}
+  #glass .gs{font-size:12.5px;opacity:.85;margin-top:3px;position:relative;z-index:3}
+
+  /* controls */
+  .panel{background:var(--panel);border:1px solid var(--bd);border-radius:var(--r);padding:14px}
+  .panel + .panel{margin-top:14px}
+  .ptitle{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 0 10px;font-weight:600}
+
+  .seg{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+  .seg button{background:var(--panel2);color:var(--mut);border:1px solid var(--bd2);border-radius:9px;padding:8px 0;font-size:12px;font-weight:550}
+  .seg button.on{background:var(--acc);color:#15101f;border-color:var(--acc);font-weight:700}
+  .modeNote{font-size:11px;color:var(--mut2);margin-top:8px;line-height:1.45;min-height:14px}
+  .modeNote.warn{color:var(--warn)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{background:var(--panel2);border:1px solid var(--bd2);color:var(--mut);border-radius:999px;padding:6px 12px;font-size:12px}
+  .chip:hover{color:var(--tx);border-color:var(--acc)}
+
+  .row{margin:11px 0}
+  .row label{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-bottom:5px}
+  .row label b{color:var(--tx);font-weight:600;font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--acc);height:18px}
+  select{width:100%;background:var(--bg2);color:var(--tx);border:1px solid var(--bd);border-radius:9px;padding:8px;font-size:13px}
+  .grp{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut2);margin:14px 0 4px;font-weight:600}
+
+  /* code */
+  .codeSec{max-width:1500px;margin:0 auto;padding:4px 20px 40px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .tab{background:var(--panel2);border:1px solid var(--bd2);color:var(--mut);border-radius:9px 9px 0 0;padding:8px 14px;font-size:13px;font-weight:550}
+  .tab.on{background:var(--panel);color:var(--tx);border-color:var(--bd);border-bottom-color:transparent}
+  .codeBox{position:relative;background:#07070b;border:1px solid var(--bd);border-radius:0 var(--r) var(--r) var(--r);overflow:hidden}
+  .copy{position:absolute;right:10px;top:10px;z-index:2;background:var(--panel);border:1px solid var(--bd);color:var(--tx);
+    border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600}
+  .copy:hover{border-color:var(--acc)}
+  .copy.done{color:var(--ok);border-color:var(--ok)}
+  pre{margin:0;padding:18px;overflow:auto;font-family:var(--mono);font-size:12.5px;line-height:1.6;color:#d6d9e0;max-height:420px}
+  .tok-key{color:#c4b5fd}.tok-str{color:#86efac}.tok-num{color:#fca73c}.tok-com{color:#5b6473}.tok-tag{color:#7dd3fc}
+
+  footer{border-top:1px solid var(--bd2);padding:22px 20px;color:var(--mut2);font-size:12px;text-align:center}
+  footer a{color:var(--mut)}
+  footer a:hover{color:var(--acc)}
+
+  /* landing */
+  .hero{max-width:1500px;margin:0 auto;padding:36px 20px 4px;text-align:center}
+  .eyebrow{display:inline-block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);
+    background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);padding:6px 14px;border-radius:999px;margin-bottom:16px}
+  .hero h1{font-size:clamp(28px,4.4vw,50px);line-height:1.06;letter-spacing:-.03em;margin:0 0 14px;font-weight:720}
+  .hero h1 .g{background:linear-gradient(120deg,#fff,var(--acc) 60%,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p.sub{max-width:680px;margin:0 auto 18px;color:var(--mut);font-size:16px}
+  .hchips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .hchip{font-size:12.5px;color:var(--tx);background:var(--panel);border:1px solid var(--bd);border-radius:999px;padding:7px 14px}
+  .hchip b{color:var(--acc)}
+  .sec{max-width:1100px;margin:0 auto;padding:42px 20px}
+  .sec h2{font-size:24px;letter-spacing:-.02em;text-align:center;margin:0 0 6px}
+  .sec .lede{text-align:center;color:var(--mut);max-width:640px;margin:0 auto 28px}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:760px){.steps{grid-template-columns:1fr}}
+  .step{background:var(--panel);border:1px solid var(--bd);border-radius:14px;padding:20px}
+  .step .n{width:30px;height:30px;border-radius:9px;background:var(--acc2);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:12px}
+  .step h3{margin:0 0 5px;font-size:16px}.step p{margin:0;color:var(--mut);font-size:13.5px}
+  .step code{background:#07070b;border:1px solid var(--bd2);border-radius:5px;padding:1px 6px;font-family:var(--mono);font-size:12px;color:var(--acc)}
+  .etable{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--panel);border:1px solid var(--bd);border-radius:14px;overflow:hidden}
+  .etable th,.etable td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--bd2)}
+  .etable tr:last-child td{border-bottom:0}
+  .etable th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+  .etable td:first-child{font-weight:650;color:var(--acc)}
+  .etable .y{color:var(--ok);font-weight:600}.etable .x{color:var(--mut2)}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo"></div>Glasskit <small>generator</small></div>
+  <div class="sp"></div>
+  <a class="hlink" href="./benchmark.html">Benchmark ↗</a>
+  <a class="hlink" href="https://github.com/REPLACE_ME/glasskit" target="_blank">GitHub</a>
+  <a class="hlink cta" href="https://www.npmjs.com/package/glasskit-js" target="_blank">npm i glasskit-js</a>
+</header>
+
+<section class="hero">
+  <div class="eyebrow">Apple / Figma Liquid Glass · for the web</div>
+  <h1>Real glass.<br><span class="g">Any element. Any framework.</span></h1>
+  <p class="sub">Tune it visually, switch the rendering engine, and copy the code for React, Vue, vanilla,
+    web component, CSS or Tailwind. The only Liquid Glass tool with <b>true refraction that works beyond Chrome</b>.</p>
+  <div class="hchips">
+    <span class="hchip"><b>4 engines</b> · CSS · SVG · Clone · WebGL</span>
+    <span class="hchip">Cross-browser refraction</span>
+    <span class="hchip">Any shape</span>
+    <span class="hchip">Perf benchmark</span>
+    <span class="hchip">Zero dependencies</span>
+  </div>
+</section>
+
+<main>
+  <!-- preview -->
+  <section class="stageWrap" id="stage">
+    <div class="scene" id="sceneDom"></div>
+    <canvas id="sceneCanvas"></canvas>
+    <div class="stageBar" id="swatches"></div>
+    <div class="resolved" id="resolved"></div>
+    <div class="hintbar">Drag the glass over the artwork ↔</div>
+    <div id="glass"><div class="gt">Liquid Glass</div><div class="gs">tune me on the right →</div></div>
+  </section>
+
+  <!-- controls -->
+  <aside>
+    <div class="panel">
+      <p class="ptitle">Engine <span style="text-transform:none;color:var(--mut2)">— the switch nobody else has</span></p>
+      <div class="seg" id="modeSeg">
+        <button data-m="auto">Auto</button>
+        <button data-m="css">CSS</button>
+        <button data-m="svg" class="on">SVG</button>
+        <button data-m="svg-clone">Clone</button>
+        <button data-m="webgl">WebGL</button>
+      </div>
+      <div class="modeNote" id="modeNote"></div>
+    </div>
+
+    <div class="panel">
+      <p class="ptitle">Presets</p>
+      <div class="chips" id="presets"></div>
+    </div>
+
+    <div class="panel">
+      <p class="ptitle">Parameters</p>
+      <div class="row"><label>Shape <b id="shapeV"></b></label>
+        <select id="shape">
+          <option value="card">Rounded card</option>
+          <option value="button">Button</option>
+          <option value="pill">Pill</option>
+          <option value="circle">Circle</option>
+          <option value="square">Sharp square</option>
+        </select>
+      </div>
+      <div class="grp">Figma params</div>
+      <div id="figmaSliders"></div>
+      <div class="grp">Optical extras</div>
+      <div id="opticalSliders"></div>
+    </div>
+  </aside>
+</main>
+
+<!-- code export -->
+<section class="codeSec">
+  <div class="tabs" id="tabs"></div>
+  <div class="codeBox">
+    <button class="copy" id="copyBtn">Copy</button>
+    <pre id="code"></pre>
+  </div>
+</section>
+
+<section class="sec">
+  <h2>How it works</h2>
+  <p class="lede">From idea to production code in three steps.</p>
+  <div class="steps">
+    <div class="step"><div class="n">1</div><h3>Tune</h3><p>Drag the sliders — they mirror Figma's Glass panel exactly. Or start from a preset.</p></div>
+    <div class="step"><div class="n">2</div><h3>Switch engine</h3><p>CSS for everywhere, SVG / Clone for real refraction, WebGL for fixed backgrounds. See the trade-off live.</p></div>
+    <div class="step"><div class="n">3</div><h3>Copy &amp; ship</h3><p>Grab the code in your framework, or <code>npm i glasskit-js</code>. Benchmark the cost first.</p></div>
+  </div>
+</section>
+
+<section class="sec">
+  <h2>The four engines</h2>
+  <p class="lede">Most tools pick one technique. Glasskit lets you switch — and tells you the catch.</p>
+  <table class="etable">
+    <thead><tr><th>Engine</th><th>Real refraction</th><th>Browsers</th><th>Refracts</th><th>Best for</th></tr></thead>
+    <tbody>
+      <tr><td>css</td><td class="x">no (blur)</td><td>all</td><td>live backdrop</td><td>default UI, mobile, Safari/FF</td></tr>
+      <tr><td>svg</td><td class="y">yes</td><td>Chromium</td><td>live backdrop</td><td>the “wow” surface on Chrome</td></tr>
+      <tr><td>svg-clone</td><td class="y">yes</td><td>all</td><td>a cloned DOM element</td><td>cross-browser refraction</td></tr>
+      <tr><td>webgl</td><td class="y">yes</td><td>all</td><td>img / canvas / video</td><td>hero over a fixed background</td></tr>
+      <tr><td>auto</td><td>—</td><td>—</td><td>—</td><td>picks the best for each browser</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<footer>
+  Glasskit — open source, MIT. Real refraction via SVG displacement & WebGL, with a pure-CSS fallback.
+  · <a href="./benchmark.html">Run the performance benchmark →</a>
+  · <a href="https://www.npmjs.com/package/glasskit-js">npm</a>
+</footer>
+
+<script src="./liquid-glass.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>

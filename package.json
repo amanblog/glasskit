@@ -1,0 +1,62 @@
+{
+  "name": "glasskit-js",
+  "version": "2.0.0",
+  "description": "Drop-in Apple/Figma 'Liquid Glass' for any element — switch between pure CSS, SVG displacement (live backdrop), cross-browser clone-mode, or WebGL. Real refraction, chromatic aberration, specular highlight. Zero dependencies. Class + <liquid-glass> web component.",
+  "keywords": [
+    "liquid-glass",
+    "glassmorphism",
+    "glass",
+    "backdrop-filter",
+    "refraction",
+    "displacement-map",
+    "feDisplacementMap",
+    "chromatic-aberration",
+    "webgl",
+    "apple",
+    "ios26",
+    "figma",
+    "ui",
+    "web-component",
+    "frosted-glass"
+  ],
+  "type": "module",
+  "main": "./liquid-glass.js",
+  "module": "./liquid-glass.js",
+  "unpkg": "./liquid-glass.js",
+  "jsdelivr": "./liquid-glass.js",
+  "types": "./liquid-glass.d.ts",
+  "exports": {
+    ".": {
+      "types": "./liquid-glass.d.ts",
+      "import": "./liquid-glass.js",
+      "require": "./liquid-glass.js",
+      "default": "./liquid-glass.js"
+    },
+    "./react": {
+      "types": "./LiquidGlass.d.ts",
+      "default": "./LiquidGlass.jsx"
+    }
+  },
+  "files": [
+    "liquid-glass.js",
+    "liquid-glass.d.ts",
+    "LiquidGlass.jsx",
+    "LiquidGlass.d.ts",
+    "README.md"
+  ],
+  "sideEffects": [
+    "./liquid-glass.js"
+  ],
+  "scripts": {
+    "bench": "node bench/run-playwright.mjs"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/REPLACE_ME/glasskit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/REPLACE_ME/glasskit.git"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.61.0"
+  }
+}

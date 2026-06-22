@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glasskit — performance benchmark</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23a78bfa'/%3E%3C/svg%3E">
+<style>
+  :root{--bg:#0a0a0f;--bg2:#0e0e16;--panel:rgba(255,255,255,.04);--bd:rgba(255,255,255,.09);--bd2:rgba(255,255,255,.06);
+    --tx:#f5f5f7;--mut:#9aa0ac;--mut2:#6b7280;--acc:#a78bfa;--acc2:#7c3aed;--ok:#34d399;--warn:#fbbf24;--bad:#f87171;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+  *{box-sizing:border-box}html,body{margin:0}
+  body{background:var(--bg);color:var(--tx);font-family:var(--sans);font-size:14px;line-height:1.5}
+  a{color:var(--mut)}a:hover{color:var(--acc)}
+  header{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;padding:12px 20px;
+    background:rgba(10,10,15,.7);backdrop-filter:blur(16px);border-bottom:1px solid var(--bd2)}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:680}
+  .logo{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--acc),#22d3ee);box-shadow:inset 0 0 0 1px #fff5}
+  .brand small{color:var(--mut);font-weight:500;font-size:12px}
+  header .sp{flex:1}.hlink{font-size:13px;padding:7px 11px;border-radius:9px}.hlink:hover{background:var(--panel);color:var(--tx)}
+  .wrap{max-width:1200px;margin:0 auto;padding:20px}
+  h1{font-size:22px;letter-spacing:-.02em;margin:0 0 4px}
+  .sub{color:var(--mut);margin:0 0 18px;max-width:760px}
+  .panel{background:var(--panel);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:16px}
+  .ptitle{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 0 12px;font-weight:600}
+  .ctl{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
+  .ctl > div{min-width:150px}
+  .opt{display:inline-flex;align-items:center;gap:7px;margin:0 12px 8px 0;font-size:13px;color:var(--mut);cursor:pointer}
+  .opt input{accent-color:var(--acc);width:15px;height:15px}
+  select,input[type=number]{background:var(--bg2);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:7px;font-size:13px}
+  .btn{background:var(--acc2);color:#fff;border:0;border-radius:10px;padding:11px 22px;font-size:14px;font-weight:650;cursor:pointer}
+  .btn:hover{background:#6d28d9}.btn:disabled{opacity:.5;cursor:default}
+  .btn.ghost{background:var(--panel);border:1px solid var(--bd);color:var(--tx)}
+  .status{font-size:13px;color:var(--mut);margin-left:14px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:right;padding:9px 12px;border-bottom:1px solid var(--bd2);font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  td.mode{font-weight:600}
+  .fps-good{color:var(--ok)}.fps-ok{color:var(--warn)}.fps-bad{color:var(--bad)}
+  .note{font-size:12px;color:var(--mut2);margin-top:10px;line-height:1.5}
+  .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;background:var(--panel);border:1px solid var(--bd);color:var(--mut)}
+  /* live test stage */
+  #stage{position:fixed;inset:0;z-index:-1;overflow:hidden;opacity:0;transition:opacity .15s}
+  #stage.live{opacity:1;z-index:1}
+  #stage .scene{position:absolute;inset:0;background:linear-gradient(135deg,#ff7a59,#a855f7,#3b82f6,#06b6d4)}
+  #stage .scene .d{position:absolute;border-radius:50%;opacity:.55;filter:blur(2px)}
+  #stageCanvas{position:absolute;inset:0;width:100%;height:100%}
+  .gtile{position:absolute;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;
+    font-weight:600;text-shadow:0 1px 4px #0006}
+  .runclose{position:fixed;right:16px;top:16px;z-index:5;background:#000a;color:#fff;border:1px solid #fff3;
+    border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;display:none}
+  #stage.live ~ .runclose{display:block}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo"></div>Glasskit <small>benchmark</small></div>
+  <div class="sp"></div>
+  <a class="hlink" href="./index.html">← Generator</a>
+</header>
+
+<div class="wrap">
+  <h1>Performance benchmark</h1>
+  <p class="sub">Spawns batches of glass elements per engine, animates them over a live backdrop, and measures real
+    frame performance. Run it in <b>Chrome, Safari and Firefox</b> — results accumulate per browser so you can compare.
+    This is how you'll know the true cost of each mode before shipping.</p>
+
+  <div class="panel">
+    <p class="ptitle">Configure</p>
+    <div class="ctl">
+      <div>
+        <div style="color:var(--mut);font-size:12px;margin-bottom:7px">Engines</div>
+        <label class="opt"><input type="checkbox" class="m" value="css" checked>CSS</label>
+        <label class="opt"><input type="checkbox" class="m" value="svg" checked>SVG</label>
+        <label class="opt"><input type="checkbox" class="m" value="svg-clone" checked>Clone</label>
+        <label class="opt"><input type="checkbox" class="m" value="webgl" checked>WebGL</label>
+      </div>
+      <div>
+        <div style="color:var(--mut);font-size:12px;margin-bottom:7px">Batch sizes (count of glass elements)</div>
+        <label class="opt"><input type="checkbox" class="c" value="1" checked>1</label>
+        <label class="opt"><input type="checkbox" class="c" value="5" checked>5</label>
+        <label class="opt"><input type="checkbox" class="c" value="15" checked>15</label>
+        <label class="opt"><input type="checkbox" class="c" value="30" checked>30</label>
+        <label class="opt"><input type="checkbox" class="c" value="60">60</label>
+        <label class="opt"><input type="checkbox" class="c" value="100">100</label>
+      </div>
+      <div>
+        <div style="color:var(--mut);font-size:12px;margin-bottom:7px">Seconds per test</div>
+        <input type="number" id="dur" value="2.5" min="1" max="10" step="0.5" style="width:80px">
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <button class="btn" id="run">Run benchmark</button>
+      <button class="btn ghost" id="exportBtn">Export JSON</button>
+      <button class="btn ghost" id="clearBtn">Clear stored</button>
+      <span class="status" id="status"></span>
+    </div>
+    <div class="note">WebGL uses one canvas + GL context per element; browsers cap active contexts (~8–16), so high WebGL
+      counts measure mostly the CSS fallback — that limit is itself a finding. <span id="memNote"></span></div>
+  </div>
+
+  <div class="panel">
+    <p class="ptitle">Results — this run <span class="badge" id="uaBadge"></span></p>
+    <div id="resultHost"><p class="note">No results yet. Hit “Run benchmark”.</p></div>
+  </div>
+
+  <div class="panel">
+    <p class="ptitle">Cross-browser comparison <span style="text-transform:none;color:var(--mut2)">— accumulated from every browser you've run this in</span></p>
+    <div id="compareHost"><p class="note">Run in Chrome, then Safari, then Firefox to populate.</p></div>
+  </div>
+</div>
+
+<div id="stage"><div class="scene" id="scene"></div><canvas id="stageCanvas"></canvas></div>
+<button class="runclose" id="abortBtn">Stop ✕</button>
+
+<script src="./liquid-glass.js"></script>
+<script>
+(function(){
+  "use strict";
+  var $=function(s){return document.querySelector(s)};
+  var stage=$("#stage"),scene=$("#scene"),stageCanvas=$("#stageCanvas");
+  var running=false,aborted=false;
+
+  /* browser id */
+  function browserName(){
+    var ua=navigator.userAgent;
+    if(/Firefox\//.test(ua))return"Firefox";
+    if(/Edg\//.test(ua))return"Edge";
+    if(/OPR\//.test(ua))return"Opera";
+    if(/Chrome\//.test(ua))return"Chrome";
+    if(/Safari\//.test(ua)&&/Version\//.test(ua))return"Safari";
+    return"Browser";
+  }
+  var BR=browserName();
+  $("#uaBadge").textContent=BR;
+  if(performance.memory)$("#memNote").textContent="Memory column shown (Chrome heap).";
+
+  /* paint scene dots once */
+  (function(){
+    var pos=[[12,18],[70,12],[40,55],[85,60],[22,78],[60,85],[90,30],[8,45]],col=["#fde047","#34d399","#fb7185","#22d3ee"];
+    pos.forEach(function(p,i){var d=document.createElement("div");d.className="d";var s=90+(i%4)*40;
+      d.style.cssText="left:"+p[0]+"%;top:"+p[1]+"%;width:"+s+"px;height:"+s+"px;background:"+col[i%4]+";transform:translate(-50%,-50%)";
+      scene.appendChild(d);});
+  })();
+  function paintCanvas(){
+    var w=stageCanvas.width=innerWidth,h=stageCanvas.height=innerHeight,ctx=stageCanvas.getContext("2d");
+    var g=ctx.createLinearGradient(0,0,w,h);["#ff7a59","#a855f7","#3b82f6","#06b6d4"].forEach(function(c,i){g.addColorStop(i/3,c)});
+    ctx.fillStyle=g;ctx.fillRect(0,0,w,h);var col=["#fde047","#34d399","#fb7185","#22d3ee"],pos=[[12,18],[70,12],[40,55],[85,60],[22,78],[60,85],[90,30],[8,45]];
+    pos.forEach(function(p,i){ctx.globalAlpha=.55;ctx.fillStyle=col[i%4];ctx.beginPath();ctx.arc(p[0]/100*w,p[1]/100*h,(90+(i%4)*40)/2,0,7);ctx.fill()});
+    ctx.globalAlpha=1;
+  }
+
+  function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+
+  function spawn(mode,count){
+    var insts=[],tiles=[],W=innerWidth,H=innerHeight,cols=Math.ceil(Math.sqrt(count)),size=Math.max(60,Math.min(150,Math.floor(W/cols)-20));
+    for(var i=0;i<count;i++){
+      var t=document.createElement("div");t.className="gtile";
+      t.style.width=size+"px";t.style.height=size+"px";t.style.borderRadius="22px";
+      t.style.left=(20+(i%cols)*(size+18))+"px";t.style.top=(70+Math.floor(i/cols)*(size+18))+"px";
+      t.textContent="glass";stage.appendChild(t);tiles.push(t);
+      var opts={mode:mode,frost:6,refraction:70,depth:18,dispersion:0.35,radius:22};
+      if(mode==="svg-clone")opts.background=scene;
+      if(mode==="webgl")opts.background=stageCanvas;
+      try{insts.push(Glasskit.apply(t,opts))}catch(e){}
+    }
+    return {insts:insts,tiles:tiles,size:size};
+  }
+  function teardown(s){s.insts.forEach(function(i){try{i.destroy()}catch(e){}});s.tiles.forEach(function(t){t.remove()})}
+
+  function measure(durMs,bundle){
+    return new Promise(function(resolve){
+      var deltas=[],last=performance.now(),t0=last,raf;
+      function frame(now){
+        var dt=now-last;last=now;if(now-t0>120)deltas.push(dt); // skip warmup ~120ms
+        // animate tiles to force backdrop recompute
+        var t=now*0.001;
+        bundle.tiles.forEach(function(el,i){el.style.transform="translate("+(Math.sin(t+i)*14).toFixed(1)+"px,"+(Math.cos(t*1.1+i)*14).toFixed(1)+"px)"});
+        if(aborted||now-t0>=durMs){cancelAnimationFrame(raf);return resolve(deltas)}
+        raf=requestAnimationFrame(frame);
+      }
+      raf=requestAnimationFrame(frame);
+    });
+  }
+  function metrics(deltas){
+    if(!deltas.length)return{fps:0,minFps:0,avgMs:0,p95:0,jank:0};
+    var sum=deltas.reduce(function(a,b){return a+b},0),sorted=deltas.slice().sort(function(a,b){return a-b});
+    var avgMs=sum/deltas.length,p95=sorted[Math.floor(sorted.length*0.95)]||sorted[sorted.length-1];
+    var worst=sorted[sorted.length-1],jank=deltas.filter(function(d){return d>25}).length/deltas.length*100;
+    return{fps:Math.round(1000/avgMs),minFps:Math.round(1000/worst),avgMs:+avgMs.toFixed(2),p95:+p95.toFixed(2),jank:+jank.toFixed(1)};
+  }
+
+  var results=[];
+  async function runOne(mode,count,durMs){
+    if(mode==="webgl"){stageCanvas.style.display="block";paintCanvas()}else{stageCanvas.style.display="none"}
+    var b=spawn(mode,count);
+    await sleep(150); // let it settle
+    var deltas=await measure(durMs,b);
+    var m=metrics(deltas);
+    if(performance.memory)m.heapMB=+(performance.memory.usedJSHeapSize/1048576).toFixed(1);
+    teardown(b);
+    await sleep(120);
+    return Object.assign({mode:mode,count:count},m);
+  }
+
+  function fpsClass(f){return f>=55?"fps-good":f>=30?"fps-ok":"fps-bad"}
+  function renderResults(){
+    if(!results.length){return}
+    var hasMem=results.some(function(r){return r.heapMB!=null});
+    var h="<table><thead><tr><th>Engine</th><th>Count</th><th>Avg FPS</th><th>Min FPS</th><th>Avg frame</th><th>p95 frame</th><th>Jank %</th>"+(hasMem?"<th>Heap MB</th>":"")+"</tr></thead><tbody>";
+    results.forEach(function(r){
+      h+="<tr><td class='mode'>"+r.mode+"</td><td>"+r.count+"</td><td class='"+fpsClass(r.fps)+"'>"+r.fps+"</td><td>"+r.minFps+"</td><td>"+r.avgMs+"ms</td><td>"+r.p95+"ms</td><td>"+r.jank+"%</td>"+(hasMem?"<td>"+(r.heapMB!=null?r.heapMB:"–")+"</td>":"")+"</tr>";
+    });
+    h+="</tbody></table>";
+    $("#resultHost").innerHTML=h;
+  }
+
+  function storeKey(){return"lgbench-"+BR}
+  function save(){
+    var rec={browser:BR,ua:navigator.userAgent,dpr:devicePixelRatio,when:new Date().toISOString(),results:results};
+    try{localStorage.setItem(storeKey(),JSON.stringify(rec))}catch(e){}
+    renderCompare();
+  }
+  function allStored(){
+    var out=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k.indexOf("lgbench-")===0){try{out.push(JSON.parse(localStorage.getItem(k)))}catch(e){}}}return out;
+  }
+  function renderCompare(){
+    var recs=allStored();if(!recs.length){return}
+    // compare avg FPS at a representative count (largest common) per mode×browser
+    var modes=["css","svg","svg-clone","webgl"];
+    var counts={};recs.forEach(function(r){r.results.forEach(function(x){counts[x.count]=1})});
+    var countList=Object.keys(counts).map(Number).sort(function(a,b){return a-b});
+    var pick=countList[countList.length-1]||1;
+    var h="<p class='note'>Avg FPS at "+pick+" elements (higher = better). Empty = not run / unsupported.</p>";
+    h+="<table><thead><tr><th>Engine</th>";recs.forEach(function(r){h+="<th>"+r.browser+"</th>"});h+="</tr></thead><tbody>";
+    modes.forEach(function(m){
+      h+="<tr><td class='mode'>"+m+"</td>";
+      recs.forEach(function(r){
+        var row=r.results.filter(function(x){return x.mode===m}).sort(function(a,b){return Math.abs(a.count-pick)-Math.abs(b.count-pick)})[0];
+        h+="<td class='"+(row?fpsClass(row.fps):"")+"'>"+(row?row.fps+" <span style='color:var(--mut2)'>@"+row.count+"</span>":"–")+"</td>";
+      });
+      h+="</tr>";
+    });
+    h+="</tbody></table>";
+    $("#compareHost").innerHTML=h;
+  }
+
+  async function run(){
+    if(running)return;running=true;aborted=false;
+    var modes=[].map.call(document.querySelectorAll(".m:checked"),function(c){return c.value});
+    var counts=[].map.call(document.querySelectorAll(".c:checked"),function(c){return +c.value}).sort(function(a,b){return a-b});
+    var durMs=Math.max(1,parseFloat($("#dur").value)||2.5)*1000;
+    if(!modes.length||!counts.length){alert("Pick at least one engine and one batch size.");running=false;return}
+    results=[];$("#run").disabled=true;stage.classList.add("live");
+    var total=modes.length*counts.length,done=0;
+    for(var mi=0;mi<modes.length;mi++){
+      for(var ci=0;ci<counts.length;ci++){
+        if(aborted)break;
+        $("#status").textContent="Testing "+modes[mi]+" × "+counts[ci]+"  ("+(done+1)+"/"+total+")";
+        var r=await runOne(modes[mi],counts[ci],durMs);
+        results.push(r);renderResults();done++;
+      }
+      if(aborted)break;
+    }
+    stage.classList.remove("live");$("#run").disabled=false;running=false;
+    $("#status").textContent=aborted?"Stopped.":"Done — "+results.length+" tests. Saved for "+BR+".";
+    if(!aborted)save();
+  }
+
+  $("#run").onclick=run;
+  $("#abortBtn").onclick=function(){aborted=true};
+  $("#exportBtn").onclick=function(){
+    var data=JSON.stringify(allStored(),null,2),blob=new Blob([data],{type:"application/json"});
+    var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="glasskit-bench.json";a.click();
+  };
+  $("#clearBtn").onclick=function(){
+    allStored();for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k.indexOf("lgbench-")===0)localStorage.removeItem(k)}
+    $("#compareHost").innerHTML="<p class='note'>Cleared.</p>";
+  };
+  window.addEventListener("resize",function(){if(stageCanvas.style.display==="block")paintCanvas()});
+  renderCompare();
+})();
+</script>
+</body>
+</html>
