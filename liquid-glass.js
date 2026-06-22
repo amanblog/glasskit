@@ -174,8 +174,13 @@
       feImage.setAttribute('href', url);
       feImage.setAttributeNS(XLINK, 'xlink:href', url);
       feImage.setAttribute('width', r.width); feImage.setAttribute('height', r.height);
-      filter.setAttribute('x', 0); filter.setAttribute('y', 0);
-      filter.setAttribute('width', r.width); filter.setAttribute('height', r.height);
+      if (mode === 'svg') {
+        // backdrop-filter applies in the element's own space → region is 0,0,w,h
+        feImage.setAttribute('x', 0); feImage.setAttribute('y', 0);
+        filter.setAttribute('x', 0); filter.setAttribute('y', 0);
+        filter.setAttribute('width', r.width); filter.setAttribute('height', r.height);
+      }
+      // clone mode: the map + filter region track the visible window every frame (syncClone)
     }
 
     /* ---- clone layer (cross-browser refraction) ---- */
@@ -200,6 +205,12 @@
       clone.style.top = (br.top - er.top) + 'px';
       clone.style.width = br.width + 'px';
       clone.style.height = br.height + 'px';
+      // The filter runs in the clone's user space (origin = background top-left). Move the
+      // displacement map + filter region to sit exactly over the glass window, wherever it is.
+      var ox = er.left - br.left, oy = er.top - br.top, pad = Math.ceil(o.frost * 2 + 12);
+      feImage.setAttribute('x', ox); feImage.setAttribute('y', oy);
+      filter.setAttribute('x', ox - pad); filter.setAttribute('y', oy - pad);
+      filter.setAttribute('width', er.width + pad * 2); filter.setAttribute('height', er.height + pad * 2);
     }
     function reclone() {
       if (!lensWrap) return;
@@ -314,8 +325,11 @@
       if (tag === 'CANVAS' || tag === 'VIDEO') uploadGL(glState.src);
       var p = glState.prog, U = function (n) { return gl.getUniformLocation(p, n); };
       var rad = o.radius == null ? readRadius(el) : o.radius, a = o.lightAngle * Math.PI / 180;
-      gl.uniform2f(U('u_win'), innerWidth, innerHeight);
-      gl.uniform2f(U('u_origin'), r.left, r.top);
+      // sample UVs are relative to the BACKGROUND's on-screen rect, not the window
+      var br = bg && bg.getBoundingClientRect ? bg.getBoundingClientRect() : null;
+      var bw = br && br.width ? br.width : innerWidth, bh = br && br.height ? br.height : innerHeight;
+      gl.uniform2f(U('u_win'), bw, bh);
+      gl.uniform2f(U('u_origin'), br && br.width ? r.left - br.left : r.left, br && br.height ? r.top - br.top : r.top);
       gl.uniform2f(U('u_size'), w, h);
       gl.uniform1f(U('u_radius'), rad);
       gl.uniform1f(U('u_bezel'), o.depth);

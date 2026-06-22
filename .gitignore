@@ -5,3 +5,4 @@ bench/results.csv
 .DS_Store
 *.log
 bench/landing-full.png
+bench/fix-*.png
