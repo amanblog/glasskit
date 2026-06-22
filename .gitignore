@@ -4,3 +4,4 @@ bench/results.json
 bench/results.csv
 .DS_Store
 *.log
+bench/landing-full.png
