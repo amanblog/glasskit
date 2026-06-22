@@ -132,7 +132,7 @@
   ];
   var OPTICAL = [
     ["curvature", "Curvature", 1, 6, 0.1, ""], ["convexity", "Convexity", -1, 1, 0.05, ""],
-    ["sheen", "Sheen (face gloss)", 0, 1, 0.02, ""],
+    ["sheen", "Sheen / gloss (0 = off)", 0, 1, 0.02, ""],
     ["tintOpacity", "Tint opacity", 0, 0.4, 0.01, ""], ["radius", "Corner radius", 0, 120, 1, ""],
   ];
   function buildSliders(list, host) {
