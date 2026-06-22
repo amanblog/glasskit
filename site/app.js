@@ -7,7 +7,7 @@
     w: 340, h: 210, radius: 30,
     frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0,
     lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1,
-    tintOpacity: 0.08,
+    tintOpacity: 0.08, sheen: 0.7, sheenColor: "255,255,255",
   };
 
   var $ = function (s) { return document.querySelector(s); };
@@ -77,7 +77,7 @@
       mode: state.mode, frost: state.frost, refraction: state.refraction, depth: state.depth,
       dispersion: state.dispersion, splay: state.splay, lightAngle: state.lightAngle,
       lightIntensity: state.lightIntensity, curvature: state.curvature, convexity: state.convexity,
-      tintOpacity: state.tintOpacity, radius: state.radius,
+      tintOpacity: state.tintOpacity, sheen: state.sheen, sheenColor: state.sheenColor, radius: state.radius,
     };
     if (state.mode === "svg-clone") o.background = sceneDom;
     if (state.mode === "webgl") o.background = sceneCanvas;
@@ -132,6 +132,7 @@
   ];
   var OPTICAL = [
     ["curvature", "Curvature", 1, 6, 0.1, ""], ["convexity", "Convexity", -1, 1, 0.05, ""],
+    ["sheen", "Sheen (face gloss)", 0, 1, 0.02, ""],
     ["tintOpacity", "Tint opacity", 0, 0.4, 0.01, ""], ["radius", "Corner radius", 0, 120, 1, ""],
   ];
   function buildSliders(list, host) {
@@ -169,6 +170,7 @@
     Object.keys(p).forEach(function (k) { state[k] = p[k]; });
     if (p.shape) { var s = SHAPES[p.shape]; state.w = s[0]; state.h = s[1]; state.radius = s[2]; $("#shape").value = p.shape; }
     buildSliders(FIGMA, $("#figmaSliders")); buildSliders(OPTICAL, $("#opticalSliders"));
+    sheenColorInput.value = rgbToHex(state.sheenColor);
     rebuild();
   }
 
@@ -193,7 +195,9 @@
       "frost: " + num(state.frost), "refraction: " + num(state.refraction), "depth: " + num(state.depth),
       "dispersion: " + num(state.dispersion), "splay: " + num(state.splay), "lightAngle: " + num(state.lightAngle),
       "lightIntensity: " + num(state.lightIntensity), "curvature: " + num(state.curvature),
-      "convexity: " + num(state.convexity), "tintOpacity: " + num(state.tintOpacity), "radius: " + num(state.radius)];
+      "convexity: " + num(state.convexity), "tintOpacity: " + num(state.tintOpacity),
+      "sheen: " + num(state.sheen), "radius: " + num(state.radius)];
+    if (state.sheenColor !== "255,255,255") p.push("sheenColor: '" + state.sheenColor + "'");
     if (needsBg()) p.push("background: '#bg'  // the element/canvas to refract");
     return indent + p.join(",\n" + indent);
   }
@@ -208,7 +212,8 @@
         "frost={" + num(state.frost) + "} refraction={" + num(state.refraction) + "} depth={" + num(state.depth) + "}",
         "dispersion={" + num(state.dispersion) + "} splay={" + num(state.splay) + "}",
         "lightAngle={" + num(state.lightAngle) + "} lightIntensity={" + num(state.lightIntensity) + "}",
-        "curvature={" + num(state.curvature) + "} convexity={" + num(state.convexity) + "} tintOpacity={" + num(state.tintOpacity) + "}"];
+        "curvature={" + num(state.curvature) + "} convexity={" + num(state.convexity) + "} tintOpacity={" + num(state.tintOpacity) + "}",
+        "sheen={" + num(state.sheen) + "}" + (state.sheenColor !== "255,255,255" ? " sheenColor=\"" + state.sheenColor + "\"" : "")];
       var bg = needsBg() ? "\n      background=\"#bg\"" : "";
       return "// npm i glasskit-js\nimport Glass from 'glasskit-js/react';\n\nexport default function Demo() {\n  return (\n    <Glass\n      " +
         attrs.join("\n      ") + bg + "\n      radius={" + num(state.radius) + "}\n      style={{ width: " + state.w + ", height: " + state.h +
@@ -230,7 +235,9 @@
         "\"\n  frost=\"" + num(state.frost) + "\" refraction=\"" + num(state.refraction) + "\" depth=\"" + num(state.depth) +
         "\" dispersion=\"" + num(state.dispersion) + "\"\n  splay=\"" + num(state.splay) + "\" light-angle=\"" + num(state.lightAngle) +
         "\" light-intensity=\"" + num(state.lightIntensity) + "\"\n  curvature=\"" + num(state.curvature) + "\" convexity=\"" + num(state.convexity) +
-        "\" tint-opacity=\"" + num(state.tintOpacity) + "\" radius=\"" + num(state.radius) + "\"" + bg +
+        "\" tint-opacity=\"" + num(state.tintOpacity) + "\" sheen=\"" + num(state.sheen) + "\"" +
+        (state.sheenColor !== "255,255,255" ? " sheen-color=\"" + state.sheenColor + "\"" : "") +
+        " radius=\"" + num(state.radius) + "\"" + bg +
         "\n  style=\"" + styleStr() + ";display:flex;align-items:flex-end;padding:20px;color:#fff\">\n  Liquid Glass\n</glass-kit>";
     },
     css: function () {
@@ -281,6 +288,13 @@
       setTimeout(function () { b.textContent = "Copy"; b.className = "copy"; }, 1400);
     });
   };
+
+  /* --------------------------- sheen color --------------------------- */
+  function rgbToHex(rgb) { return "#" + rgb.split(",").map(function (x) { return (+x).toString(16).padStart(2, "0"); }).join(""); }
+  function hexToRgb(h) { var n = parseInt(h.slice(1), 16); return ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255); }
+  var sheenColorInput = $("#sheenColor");
+  sheenColorInput.value = rgbToHex(state.sheenColor);
+  sheenColorInput.addEventListener("input", function (e) { state.sheenColor = hexToRgb(e.target.value); liveUpdate(); });
 
   /* ------------------------------ boot ------------------------------ */
   window.addEventListener("resize", function () { if (state.mode === "webgl") paintCanvasScene(); });

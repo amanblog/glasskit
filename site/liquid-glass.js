@@ -38,6 +38,8 @@
     convexity: 1,         // +1 convex (magnify) .. 0 flat .. -1 concave (shrink)
     tint: '255,255,255',  // "r,g,b"
     tintOpacity: 0.08,
+    sheen: 0.7,           // diagonal gloss over the card FACE (0 = remove; border stays)
+    sheenColor: '255,255,255', // "r,g,b" — recolor the gloss
     saturate: 1.4,
     brightness: 1.04,
     radius: null,         // null = read element border-radius
@@ -241,9 +243,11 @@
     function applyOverlay() {
       var li = o.lightIntensity, a = (o.lightAngle + 90) * Math.PI / 180;
       if (mode === 'css' || mode === 'svg') el.style.backgroundColor = 'rgba(' + o.tint + ',' + o.tintOpacity + ')';
-      overlay.style.background =
-        'linear-gradient(' + (o.lightAngle + 90) + 'deg,rgba(255,255,255,' + (0.55 * li) +
-        ') 0%,rgba(255,255,255,0) 28%,rgba(255,255,255,0) 72%,rgba(255,255,255,' + (0.10 * li) + ') 100%)';
+      // FACE gloss — controlled by `sheen`/`sheenColor`, independent of the border light below
+      var sc = o.sheenColor, sh = o.sheen;
+      overlay.style.background = sh <= 0 ? 'none' :
+        'linear-gradient(' + (o.lightAngle + 90) + 'deg,rgba(' + sc + ',' + (0.6 * sh).toFixed(3) +
+        ') 0%,rgba(' + sc + ',0) 30%,rgba(' + sc + ',0) 70%,rgba(' + sc + ',' + (0.14 * sh).toFixed(3) + ') 100%)';
       overlay.style.boxShadow =
         'inset 0 0 0 1px rgba(255,255,255,' + (0.30 * li) + '),' +
         'inset ' + (Math.cos(a) * 2).toFixed(1) + 'px ' + (Math.sin(a) * 2).toFixed(1) + 'px 2px rgba(255,255,255,' + (0.5 * li) + '),' +
@@ -288,7 +292,7 @@
       var loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc);
       gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
       var tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); // uv.y is top-origin to match the element math
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -375,7 +379,8 @@
 
   /* ===================== <glass-kit> web component ===================== */
   var ATTRS = ['mode', 'frost', 'refraction', 'depth', 'dispersion', 'splay', 'light-angle',
-    'light-intensity', 'curvature', 'convexity', 'tint', 'tint-opacity', 'radius', 'background'];
+    'light-intensity', 'curvature', 'convexity', 'tint', 'tint-opacity', 'sheen', 'sheen-color',
+    'radius', 'background'];
   function camel(s) { return s.replace(/-([a-z])/g, function (_, c) { return c.toUpperCase(); }); }
   function defineElement() {
     if (typeof customElements === 'undefined' || customElements.get('glass-kit')) return;
@@ -385,7 +390,7 @@
       ATTRS.forEach(function (a) {
         if (!node.hasAttribute(a)) return;
         var v = node.getAttribute(a), key = camel(a);
-        opts[key] = (a === 'mode' || a === 'tint' || a === 'background') ? v : parseFloat(v);
+        opts[key] = (a === 'mode' || a === 'tint' || a === 'sheen-color' || a === 'background') ? v : parseFloat(v);
       });
       return opts;
     }

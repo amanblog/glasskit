@@ -19,7 +19,7 @@ import LG from "./liquid-glass";
 const GLASS_KEYS = [
   "mode", "frost", "refraction", "depth", "dispersion", "splay",
   "lightAngle", "lightIntensity", "curvature", "convexity",
-  "tint", "tintOpacity", "saturate", "brightness", "radius", "background",
+  "tint", "tintOpacity", "sheen", "sheenColor", "saturate", "brightness", "radius", "background",
 ];
 
 export default function LiquidGlass({ as: Tag = "div", children, ...props }) {

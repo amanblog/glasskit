@@ -6,3 +6,5 @@ bench/results.csv
 *.log
 bench/landing-full.png
 bench/fix-*.png
+bench/cmp-*.png
+bench/sheen-*.png
