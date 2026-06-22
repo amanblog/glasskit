@@ -1,10 +1,6 @@
 node_modules/
-bench/smoke-*.png
+bench/*.png
 bench/results.json
 bench/results.csv
 .DS_Store
 *.log
-bench/landing-full.png
-bench/fix-*.png
-bench/cmp-*.png
-bench/sheen-*.png

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glasskit — background-type test</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23a78bfa'/%3E%3C/svg%3E">
+<style>
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;color:#fff;overflow:hidden;background:#000}
+  .layer{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:none}
+  #txt{padding:60px;background:linear-gradient(135deg,#0f172a,#4c1d95,#0c4a6e);overflow:hidden}
+  #txt h1{font-size:120px;margin:0;letter-spacing:-.03em}
+  #txt p{font-size:26px;max-width:60%;color:#e5e7eb;line-height:1.5}
+  #txt .blob{position:absolute;border-radius:50%;opacity:.6;filter:blur(2px)}
+  .bar{position:fixed;left:0;right:0;top:0;z-index:10;display:flex;gap:10px;align-items:center;
+    padding:11px 18px;background:rgba(0,0,0,.5);backdrop-filter:blur(12px)}
+  .bar b{font-weight:680}
+  .bar .sp{flex:1}
+  .srcbtn,.lnk{font:inherit;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.18);
+    border-radius:9px;padding:8px 14px;cursor:pointer;font-size:13px;text-decoration:none}
+  .srcbtn:hover{border-color:#a78bfa}
+  .srcbtn.on{background:#a78bfa;color:#15101f;border-color:#a78bfa;font-weight:700}
+  .legend{position:fixed;left:0;right:0;top:54px;z-index:9;text-align:center;font-size:12.5px;color:#dfe3ea;
+    background:rgba(0,0,0,.4);padding:7px 18px}
+  .row{position:fixed;z-index:5;left:0;right:0;top:52%;transform:translateY(-50%);
+    display:flex;gap:24px;justify-content:center;flex-wrap:wrap;padding:0 20px}
+  .card{position:relative;width:225px;height:158px;border-radius:24px;display:flex;flex-direction:column;
+    justify-content:flex-end;padding:14px;color:#fff;text-shadow:0 1px 6px #0008}
+  .card .lab{font-size:15px;font-weight:680;position:relative;z-index:3}
+  .card .sub{font-size:11px;opacity:.85;position:relative;z-index:3}
+  .tag{position:absolute;top:10px;left:12px;z-index:3;font-size:10px;font-weight:700;letter-spacing:.05em;
+    text-transform:uppercase;padding:3px 8px;border-radius:6px;background:#0007}
+  .note{position:fixed;left:0;right:0;bottom:0;z-index:10;text-align:center;font-size:12px;color:#cbd0da;
+    background:rgba(0,0,0,.5);backdrop-filter:blur(10px);padding:9px 18px}
+</style>
+</head>
+<body>
+  <!-- background layers (only the active one is shown) -->
+  <canvas id="live" class="layer"></canvas>
+  <video id="vid" class="layer" muted loop playsinline crossorigin="anonymous"
+         src="https://mdn.github.io/shared-assets/videos/flower.mp4" style="object-fit:cover"></video>
+  <img id="imgEl" class="layer" alt="" style="object-fit:cover">
+  <div id="txt" class="layer">
+    <div class="blob" style="left:70%;top:25%;width:220px;height:220px;background:#fb7185"></div>
+    <div class="blob" style="left:85%;top:70%;width:160px;height:160px;background:#22d3ee"></div>
+    <h1>TEXT &amp; DOM</h1>
+    <p>Real DOM nodes — headings, paragraphs, divs. Clone copies these perfectly. WebGL can't: a shader can only sample a canvas, image or video, not arbitrary HTML.</p>
+  </div>
+
+  <div class="bar">
+    <b>Glasskit · background test</b>
+    <span class="sp"></span>
+    <button class="srcbtn" data-s="canvas">Canvas</button>
+    <button class="srcbtn" data-s="video">Video</button>
+    <button class="srcbtn" data-s="image">Image</button>
+    <button class="srcbtn" data-s="text">Text / DOM</button>
+    <a class="lnk" href="./index.html">← Generator</a>
+  </div>
+  <div class="legend" id="legend"></div>
+
+  <div class="row">
+    <div class="card" id="c_css"><span class="tag">CSS</span><span class="lab">CSS</span><span class="sub">backdrop blur · all browsers</span></div>
+    <div class="card" id="c_svg"><span class="tag">SVG</span><span class="lab">SVG</span><span class="sub">backdrop refraction · Chromium</span></div>
+    <div class="card" id="c_clone"><span class="tag">Clone</span><span class="lab">Clone</span><span class="sub">clones DOM · cross-browser</span></div>
+    <div class="card" id="c_webgl"><span class="tag">WebGL</span><span class="lab">WebGL</span><span class="sub">shader · cross-browser</span></div>
+  </div>
+
+  <div class="note" id="note">Switch the background type and watch each card. Green tag = the mode works on that source; red = no effect. (SVG needs Chromium.)</div>
+
+  <script src="./liquid-glass.js?v=3"></script>
+  <script>
+  (function(){
+    var cv=document.getElementById("live"), ctx=cv.getContext("2d");
+    var vid=document.getElementById("vid"), imgEl=document.getElementById("imgEl"), txt=document.getElementById("txt");
+    var source="canvas", frame=0;
+    var DPR=Math.min(window.devicePixelRatio||1, 2);
+
+    // render the canvas at device-pixel resolution so its text is as crisp as
+    // the framebuffer the CSS/SVG modes sample — keeps the WebGL comparison fair.
+    function size(){ cv.width=Math.round(innerWidth*DPR); cv.height=Math.round(innerHeight*DPR); ctx.setTransform(DPR,0,0,DPR,0,0); }
+    size(); addEventListener("resize", size);
+
+    // animated canvas
+    var balls=[[0.2,0.3,70,"#fde047"],[0.6,0.25,90,"#34d399"],[0.8,0.7,80,"#fb7185"],[0.35,0.75,75,"#22d3ee"],[0.5,0.5,60,"#c084fc"]];
+    // floating text — drifts around like the shapes
+    var words=[
+      [0.5,0.42,90,"800","rgba(255,255,255,.92)","LIVE"],
+      [0.22,0.62,40,"700","rgba(253,224,71,.9)","refraction"],
+      [0.78,0.34,44,"700","rgba(34,211,238,.9)","glass"],
+      [0.62,0.78,36,"600","rgba(251,113,133,.9)","floating"],
+      [0.30,0.20,34,"600","rgba(192,132,252,.9)","canvas"]
+    ];
+    function draw(t){
+      var w=cv.width/DPR,h=cv.height/DPR;
+      var g=ctx.createLinearGradient(0,0,w,h);
+      g.addColorStop(0,"#1e293b"); g.addColorStop(.5,"#4c1d95"); g.addColorStop(1,"#0c4a6e");
+      ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+      balls.forEach(function(b,i){
+        var x=(b[0]+0.18*Math.sin(t*0.0006+i))*w, y=(b[1]+0.18*Math.cos(t*0.0007+i*1.3))*h;
+        ctx.globalAlpha=.7; ctx.fillStyle=b[3]; ctx.beginPath(); ctx.arc(x,y,b[2],0,7); ctx.fill();
+      });
+      ctx.globalAlpha=1; frame++;
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      words.forEach(function(wd,i){
+        var x=(wd[0]+0.06*Math.sin(t*0.0005+i*1.7))*w, y=(wd[1]+0.06*Math.cos(t*0.0006+i*2.1))*h;
+        ctx.save();
+        ctx.translate(x,y); ctx.rotate(0.12*Math.sin(t*0.0004+i));
+        ctx.fillStyle=wd[4]; ctx.font=wd[3]+" "+wd[2]+"px system-ui";
+        ctx.fillText(wd[5]==="LIVE"?("LIVE "+(frame%1000)):wd[5], 0, 0);
+        ctx.restore();
+      });
+      ctx.textBaseline="alphabetic";
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+
+    // build a same-origin image (no CORS issues for WebGL)
+    (function(){
+      var c=document.createElement("canvas"); c.width=1280; c.height=800; var x=c.getContext("2d");
+      var g=x.createLinearGradient(0,0,1280,800); g.addColorStop(0,"#f59e0b"); g.addColorStop(.5,"#db2777"); g.addColorStop(1,"#4f46e5");
+      x.fillStyle=g; x.fillRect(0,0,1280,800);
+      [["#fde047",230,200,130],["#34d399",980,280,160],["#22d3ee",640,600,140]].forEach(function(d){
+        x.globalAlpha=.7; x.fillStyle=d[0]; x.beginPath(); x.arc(d[1],d[2],d[3],0,7); x.fill(); });
+      x.globalAlpha=1; x.fillStyle="#fff"; x.font="800 150px system-ui"; x.textAlign="center"; x.fillText("IMAGE",640,460);
+      imgEl.src=c.toDataURL();
+    })();
+
+    var els={canvas:cv,video:vid,image:imgEl,text:txt};
+    var SUP={
+      canvas:{css:1,svg:1,"svg-clone":0,webgl:1},
+      video :{css:1,svg:1,"svg-clone":0,webgl:1},
+      image :{css:1,svg:1,"svg-clone":1,webgl:1},
+      text  :{css:1,svg:1,"svg-clone":1,webgl:0}
+    };
+    var MODES=[["c_css","css"],["c_svg","svg"],["c_clone","svg-clone"],["c_webgl","webgl"]];
+    var insts=[];
+
+    function rebuild(){
+      insts.forEach(function(i){ try{i.destroy()}catch(e){} }); insts=[];
+      var bg=els[source];
+      MODES.forEach(function(m){
+        var opts={mode:m[1],frost:6,refraction:80,depth:18,dispersion:0.35,radius:24,sheen:0.5};
+        if(m[1]==="svg-clone"||m[1]==="webgl") opts.background=bg;
+        try{ insts.push(Glasskit.apply(document.getElementById(m[0]),opts)); }catch(e){}
+      });
+    }
+    function legend(){
+      var m=SUP[source];
+      MODES.forEach(function(p){
+        var tag=document.querySelector("#"+p[0]+" .tag"), ok=m[p[1]];
+        tag.style.background= ok?"rgba(52,211,153,.9)":"rgba(248,113,113,.9)"; tag.style.color="#0b0b10";
+      });
+      document.getElementById("legend").innerHTML =
+        "Background: <b>"+source+"</b> &nbsp;—&nbsp; CSS "+(m.css?"✓":"✗")+" · SVG "+(m.svg?"✓":"✗")+
+        " · Clone "+(m["svg-clone"]?"✓":"✗")+" · WebGL "+(m.webgl?"✓":"✗");
+    }
+    function setSource(s){
+      source=s;
+      Object.keys(els).forEach(function(k){ els[k].style.display = k===s ? "block":"none"; });
+      if(s==="video") vid.play().catch(function(){}); else { try{vid.pause()}catch(e){} }
+      document.querySelectorAll(".srcbtn").forEach(function(btn){ btn.classList.toggle("on",btn.dataset.s===s); });
+      // for canvas/video, WebGL works and Clone is blank — show WebGL before Clone
+      var swap = (s==="canvas"||s==="video");
+      document.getElementById("c_webgl").style.order = swap ? 3 : 4;
+      document.getElementById("c_clone").style.order = swap ? 4 : 3;
+      rebuild(); legend();
+    }
+    document.querySelectorAll(".srcbtn").forEach(function(btn){ btn.onclick=function(){ setSource(btn.dataset.s); }; });
+
+    setSource("canvas");
+  })();
+  </script>
+</body>
+</html>

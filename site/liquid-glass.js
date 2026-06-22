@@ -321,25 +321,29 @@
     }
     function renderGL() {
       if (!gl || !glState || !glState.src) return;
+      // render the drawing buffer at device-pixel resolution so high-frequency
+      // detail (text edges) doesn't alias when the browser upscales on HiDPI screens.
+      var dpr = window.devicePixelRatio || 1;
       var r = el.getBoundingClientRect();
-      var w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
+      var w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
       if (glcanvas.width !== w || glcanvas.height !== h) { glcanvas.width = w; glcanvas.height = h; }
       gl.viewport(0, 0, w, h);
       var tag = glState.src.tagName;
       if (tag === 'CANVAS' || tag === 'VIDEO') uploadGL(glState.src);
       var p = glState.prog, U = function (n) { return gl.getUniformLocation(p, n); };
       var rad = o.radius == null ? readRadius(el) : o.radius, a = o.lightAngle * Math.PI / 180;
+      // every pixel-space uniform scales by dpr together, keeping the shader internally consistent
       // sample UVs are relative to the BACKGROUND's on-screen rect, not the window
       var br = bg && bg.getBoundingClientRect ? bg.getBoundingClientRect() : null;
       var bw = br && br.width ? br.width : innerWidth, bh = br && br.height ? br.height : innerHeight;
-      gl.uniform2f(U('u_win'), bw, bh);
-      gl.uniform2f(U('u_origin'), br && br.width ? r.left - br.left : r.left, br && br.height ? r.top - br.top : r.top);
+      gl.uniform2f(U('u_win'), bw * dpr, bh * dpr);
+      gl.uniform2f(U('u_origin'), (br && br.width ? r.left - br.left : r.left) * dpr, (br && br.height ? r.top - br.top : r.top) * dpr);
       gl.uniform2f(U('u_size'), w, h);
-      gl.uniform1f(U('u_radius'), rad);
-      gl.uniform1f(U('u_bezel'), o.depth);
-      gl.uniform1f(U('u_refraction'), o.refraction);
+      gl.uniform1f(U('u_radius'), rad * dpr);
+      gl.uniform1f(U('u_bezel'), o.depth * dpr);
+      gl.uniform1f(U('u_refraction'), o.refraction * dpr);
       gl.uniform1f(U('u_dispersion'), o.dispersion);
-      gl.uniform1f(U('u_frost'), o.frost);
+      gl.uniform1f(U('u_frost'), o.frost * dpr);
       gl.uniform1f(U('u_curv'), o.curvature);
       gl.uniform1f(U('u_convex'), o.convexity);
       gl.uniform1f(U('u_lightI'), o.lightIntensity);
