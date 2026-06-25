@@ -126,16 +126,19 @@ Writes `bench/results.json` and `bench/results.csv`.
 Two GitHub Actions handle shipping:
 
 - **`.github/workflows/pages.yml`** — deploys `site/` to GitHub Pages on every push to `main` that touches `site/`.
-- **`.github/workflows/release.yml`** — publishes to npm when a `v*` tag is pushed (with provenance). Requires an `NPM_TOKEN` repo secret (npm automation token).
+- **`.github/workflows/release.yml`** — publishes to npm when a `v*` tag is pushed, via **npm Trusted Publishing (OIDC)** — no `NPM_TOKEN`, provenance generated automatically.
 
-Cutting a release:
+**One-time bootstrap** (npm requires the package to exist before a trusted publisher can be configured):
+
+1. `npm publish --access public` once from a logged-in machine to create `glasskit-js`.
+2. npmjs.com → the package → **Settings → Trusted Publisher** → GitHub Actions, repo `amanblog/glasskit`, workflow `release.yml`.
+
+After that, cutting a release is tokenless:
 
 ```bash
 npm version patch        # bumps package.json + creates the vX.Y.Z tag & commit
-git push --follow-tags   # CI verifies tag == version, then npm publish
+git push --follow-tags   # CI verifies tag == version, then publishes with provenance
 ```
-
-To publish by hand instead: `npm publish --provenance --access public`.
 
 ## License
 MIT — see [LICENSE](LICENSE).
