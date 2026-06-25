@@ -56,6 +56,9 @@
     return chromium && ok;
   }
   function clamp8(v) { return v < 0 ? 0 : v > 255 ? 255 : Math.round(v); }
+  // only ever emit a clean "r,g,b" triplet into inline CSS — blocks url()/expression smuggling
+  function safeRGB(v) { return (typeof v === 'string' && /^\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*$/.test(v)) ? v.replace(/\s+/g, '') : '255,255,255'; }
+  function num(v, d) { var n = parseFloat(v); return isFinite(n) ? n : d; }
   function resolveEl(x) { return typeof x === 'string' ? document.querySelector(x) : x; }
   function readRadius(el) { return parseFloat(getComputedStyle(el).borderRadius) || 0; }
   function ns(tag) { return document.createElementNS('http://www.w3.org/2000/svg', tag); }
@@ -234,19 +237,19 @@
       if (mode === 'svg') {
         var f = 'url(#' + id + ')'; el.style.backdropFilter = f; el.style.webkitBackdropFilter = f;
       } else if (mode === 'css') {
-        var c = 'blur(' + o.frost + 'px) saturate(' + o.saturate + ') brightness(' + o.brightness + ')';
+        var c = 'blur(' + num(o.frost, 6) + 'px) saturate(' + num(o.saturate, 1.4) + ') brightness(' + num(o.brightness, 1.04) + ')';
         el.style.backdropFilter = c; el.style.webkitBackdropFilter = c;
       }
     }
 
     /* ---- tint + specular overlay (all modes) ---- */
     function applyOverlay() {
-      var li = o.lightIntensity, a = (o.lightAngle + 90) * Math.PI / 180;
-      if (mode === 'css' || mode === 'svg') el.style.backgroundColor = 'rgba(' + o.tint + ',' + o.tintOpacity + ')';
+      var li = num(o.lightIntensity, 0.8), a = (num(o.lightAngle, -45) + 90) * Math.PI / 180;
+      if (mode === 'css' || mode === 'svg') el.style.backgroundColor = 'rgba(' + safeRGB(o.tint) + ',' + num(o.tintOpacity, 0.08) + ')';
       // FACE gloss — controlled by `sheen`/`sheenColor`, independent of the border light below
-      var sc = o.sheenColor, sh = o.sheen;
+      var sc = safeRGB(o.sheenColor), sh = num(o.sheen, 0.7);
       overlay.style.background = sh <= 0 ? 'none' :
-        'linear-gradient(' + (o.lightAngle + 90) + 'deg,rgba(' + sc + ',' + (0.6 * sh).toFixed(3) +
+        'linear-gradient(' + (num(o.lightAngle, -45) + 90) + 'deg,rgba(' + sc + ',' + (0.6 * sh).toFixed(3) +
         ') 0%,rgba(' + sc + ',0) 30%,rgba(' + sc + ',0) 70%,rgba(' + sc + ',' + (0.14 * sh).toFixed(3) + ') 100%)';
       overlay.style.boxShadow =
         'inset 0 0 0 1px rgba(255,255,255,' + (0.30 * li) + '),' +
@@ -374,6 +377,8 @@
       destroy: function () {
         if (rafId) cancelAnimationFrame(rafId);
         ro.disconnect();
+        // free the WebGL context explicitly — browsers cap ~16 per page
+        if (gl) { var lc = gl.getExtension('WEBGL_lose_context'); if (lc) lc.loseContext(); gl = null; }
         [svg, lensWrap, glcanvas, overlay].forEach(function (n) { if (n && n.parentNode) n.parentNode.removeChild(n); });
         el.style.backdropFilter = ''; el.style.webkitBackdropFilter = ''; el.style.backgroundColor = prevBg;
       }

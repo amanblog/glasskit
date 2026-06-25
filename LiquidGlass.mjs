@@ -1,9 +1,9 @@
 "use client";
 /*
  * <LiquidGlass> — React/Next.js wrapper around liquid-glass.js.
- * Put liquid-glass.js next to this file (or adjust the import path).
+ * Ships without JSX so it works in any bundler (no transform of node_modules needed).
  *
- *   import LiquidGlass from "./LiquidGlass";
+ *   import LiquidGlass from "glasskit-js/react";
  *
  *   <LiquidGlass as="button" mode="auto" refraction={90} dispersion={0.5}
  *                style={{ borderRadius: 999, padding: "14px 28px" }}>
@@ -14,7 +14,7 @@
  * SSR-safe: the engine only runs in a client effect.
  */
 import React, { useRef, useEffect } from "react";
-import LG from "./liquid-glass";
+import LG from "./liquid-glass.js";
 
 const GLASS_KEYS = [
   "mode", "frost", "refraction", "depth", "dispersion", "splay",
@@ -47,9 +47,5 @@ export default function LiquidGlass({ as: Tag = "div", children, ...props }) {
     instRef.current?.update(JSON.parse(optsKey));
   }, [optsKey]);
 
-  return (
-    <Tag ref={ref} {...rest}>
-      {children}
-    </Tag>
-  );
+  return React.createElement(Tag, { ref, ...rest }, children);
 }

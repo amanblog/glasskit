@@ -19,7 +19,6 @@
     "web-component",
     "frosted-glass"
   ],
-  "type": "module",
   "main": "./liquid-glass.js",
   "module": "./liquid-glass.js",
   "unpkg": "./liquid-glass.js",
@@ -34,13 +33,13 @@
     },
     "./react": {
       "types": "./LiquidGlass.d.ts",
-      "default": "./LiquidGlass.jsx"
+      "default": "./LiquidGlass.mjs"
     }
   },
   "files": [
     "liquid-glass.js",
     "liquid-glass.d.ts",
-    "LiquidGlass.jsx",
+    "LiquidGlass.mjs",
     "LiquidGlass.d.ts",
     "README.md"
   ],
@@ -51,12 +50,16 @@
     "bench": "node bench/run-playwright.mjs"
   },
   "license": "MIT",
-  "homepage": "https://github.com/REPLACE_ME/glasskit#readme",
+  "author": "amanblog",
+  "homepage": "https://amanblog.github.io/glasskit/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/REPLACE_ME/glasskit.git"
+    "url": "git+https://github.com/amanblog/glasskit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/amanblog/glasskit/issues"
   },
   "devDependencies": {
-    "playwright-core": "^1.61.0"
+    "playwright-core": "^1.61.1"
   }
 }
