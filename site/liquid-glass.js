@@ -1,5 +1,5 @@
 /*!
- * liquid-glass.js v2 — drop-in "Figma Glass" / Apple Liquid Glass for any element.
+ * liquid-glass.js — drop-in "Figma Glass" / Apple Liquid Glass for any element.
  * Zero dependencies. UMD (window.LiquidGlass + CommonJS) + <glass-kit> web component.
  *
  *   const g = LiquidGlass.apply(el, { mode: 'auto', refraction: 90, dispersion: 0.5 });
@@ -416,5 +416,5 @@
   }
   if (typeof window !== 'undefined') { if (document.readyState !== 'loading') defineElement(); else document.addEventListener('DOMContentLoaded', defineElement); }
 
-  return { apply: apply, defineElement: defineElement, isChromium: isChromium, pickMode: pickMode, DEFAULTS: DEFAULTS, version: '2.0.0' };
+  return { apply: apply, defineElement: defineElement, isChromium: isChromium, pickMode: pickMode, DEFAULTS: DEFAULTS, version: '1.0.0' };
 });
