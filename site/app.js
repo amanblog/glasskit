@@ -179,7 +179,12 @@
     var sx, sy, ox, oy, down = false;
     glass.addEventListener("pointerdown", function (e) {
       down = true; glass.classList.add("drag"); glass.setPointerCapture(e.pointerId);
-      sx = e.clientX; sy = e.clientY; ox = parseFloat(glass.style.left) || 0; oy = parseFloat(glass.style.top) || 0;
+      // read the real rendered position — initial left/top come from the stylesheet,
+      // so glass.style.left is empty until the first drag; fall back to computed values
+      var cs = getComputedStyle(glass);
+      sx = e.clientX; sy = e.clientY;
+      ox = parseFloat(glass.style.left) || parseFloat(cs.left) || 0;
+      oy = parseFloat(glass.style.top) || parseFloat(cs.top) || 0;
     });
     glass.addEventListener("pointermove", function (e) {
       if (!down) return; glass.style.left = (ox + e.clientX - sx) + "px"; glass.style.top = (oy + e.clientY - sy) + "px";
