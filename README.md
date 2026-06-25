@@ -1,54 +1,28 @@
 # Glasskit
 
-**Drop-in Apple / Figma "Liquid Glass" for the web — and the generator that ships the code.**
+**Drop-in Apple / Figma "Liquid Glass" for the web.**
+
+[![npm version](https://img.shields.io/npm/v/glasskit-js?color=8b5cf6&label=npm)](https://www.npmjs.com/package/glasskit-js)
+[![minzipped size](https://img.shields.io/bundlephobia/minzip/glasskit-js?color=8b5cf6)](https://bundlephobia.com/package/glasskit-js)
+[![zero dependencies](https://img.shields.io/badge/dependencies-0-8b5cf6)](https://www.npmjs.com/package/glasskit-js?activeTab=dependencies)
+[![types included](https://img.shields.io/npm/types/glasskit-js?color=8b5cf6)](./liquid-glass.d.ts)
+[![license MIT](https://img.shields.io/npm/l/glasskit-js?color=8b5cf6)](./LICENSE)
 
 The only liquid-glass tool that lets you **switch the rendering engine** (pure CSS · SVG
-displacement · cross-browser clone · WebGL), apply it to **any element/shape**, **copy the
-code in any framework**, and **measure the real performance cost** before you ship.
+displacement · cross-browser clone · WebGL), apply it to **any element/shape**, and use it
+from **vanilla JS, a web component, or React** — with zero dependencies.
+
+> 🎛️ **[Try the generator →](https://amanblog.github.io/glasskit/)** — tune it visually and copy the code in any framework.
+
+```bash
+npm i glasskit-js
+```
 
 > npm: **`glasskit-js`** · global: **`Glasskit`** · web component: **`<glass-kit>`**
 
-```
-liquid-glass.js      ← the engine (zero deps, UMD + <glass-kit> web component)
-liquid-glass.d.ts    ← TypeScript types
-LiquidGlass.mjs      ← React/Next.js wrapper (default export, no JSX — works in any bundler)
-package.json         ← npm package "glasskit-js"
-demo.html            ← minimal standalone playground
-site/                ← the generator website (static, deploy as-is)
-  index.html · app.js · benchmark.html · liquid-glass.js
-bench/               ← automated cross-browser benchmark runner (Playwright)
-```
-
 ---
 
-## The engine
-
-### Modes — the switch nobody else gives you
-
-| Mode | Real refraction | Browsers | Refracts | Best for |
-|------|:---:|---|---|---|
-| `css` | ✗ (blur) | **all** | live backdrop | default product UI, mobile, Safari/FF |
-| `svg` | ✓ | **Chromium** | live backdrop | the "wow" surface on Chrome/Edge |
-| `svg-clone` | ✓ | **all** | a cloned DOM element | cross-browser refraction over DOM |
-| `webgl` | ✓ | **all** | an img/canvas/video | hero over a fixed background/video |
-| `auto` | — | — | — | Chromium→`svg`, else `svg-clone` if `background` set, else `css` |
-
-`svg-clone` is the cross-browser trick: Safari/Firefox don't allow an SVG filter in
-`backdrop-filter`, so it **clones the background element and filters the clone** instead.
-It refracts DOM, not `<canvas>` pixels — use `webgl` for canvas/video backgrounds.
-
-### Params ↔ Figma's Glass panel
-
-| Figma slider | Option | | Optical extras | Option |
-|---|---|---|---|---|
-| Frost | `frost` | | curvature (sphere→squircle) | `curvature` |
-| Refraction | `refraction` | | convex↔concave | `convexity` |
-| Depth | `depth` | | tint | `tint`, `tintOpacity` |
-| Dispersion | `dispersion` | | corner radius | `radius` |
-| Splay | `splay` | | | |
-| Light (angle / %) | `lightAngle` / `lightIntensity` | | | |
-
-### Usage
+## Usage
 
 ```html
 <!-- vanilla / CDN -->
@@ -74,7 +48,35 @@ import Glass from 'glasskit-js/react';
        style={{ borderRadius: 999, padding: '14px 28px' }}>Get tickets</Glass>
 ```
 
-### Shapes
+---
+
+## Modes — the switch nobody else gives you
+
+| Mode | Real refraction | Browsers | Refracts | Best for |
+|------|:---:|---|---|---|
+| `css` | ✗ (blur) | **all** | live backdrop | default product UI, mobile, Safari/FF |
+| `svg` | ✓ | **Chromium** | live backdrop | the "wow" surface on Chrome/Edge |
+| `svg-clone` | ✓ | **all** | a cloned DOM element | cross-browser refraction over DOM |
+| `webgl` | ✓ | **all** | an img/canvas/video | hero over a fixed background/video |
+| `auto` | — | — | — | Chromium→`svg`, else `svg-clone` if `background` set, else `css` |
+
+`svg-clone` is the cross-browser trick: Safari/Firefox don't allow an SVG filter in
+`backdrop-filter`, so it **clones the background element and filters the clone** instead.
+It refracts DOM, not `<canvas>` pixels — use `webgl` for canvas/video backgrounds.
+
+## Params ↔ Figma's Glass panel
+
+| Figma slider | Option | | Optical extras | Option |
+|---|---|---|---|---|
+| Frost | `frost` | | curvature (sphere→squircle) | `curvature` |
+| Refraction | `refraction` | | convex↔concave | `convexity` |
+| Depth | `depth` | | tint | `tint`, `tintOpacity` |
+| Dispersion | `dispersion` | | corner radius | `radius` |
+| Splay | `splay` | | | |
+| Light (angle / %) | `lightAngle` / `lightIntensity` | | | |
+
+## Shapes
+
 Any **rounded rectangle (incl. pills & circles)** works with zero extra code — a
 `ResizeObserver` regenerates the refraction map on resize. Arbitrary outlines (blobs,
 SVG paths) keep the blur/tint/highlight via `clip-path`, but refraction edges assume a
@@ -82,63 +84,9 @@ rounded box; supply a custom displacement map for true custom outlines.
 
 ---
 
-## The generator website (`site/`)
-
-Static — no build step. Tune visually → switch engine → copy code for React, Vue,
-vanilla, web component, CSS, or Tailwind. Plus a preset gallery and a benchmark page.
-
-```bash
-npx serve site         # or: python3 -m http.server --directory site
-```
-
-**Deploy to Cloudflare Pages:** create a Pages project, set the **build command empty**
-and the **output/root directory to `site`**. Pure static files. (Vercel: framework
-"Other", output dir `site`.) Then set your domain in the `og:`/`canonical` tags and add an
-`og.png` (a generator script lives at `bench/og.mjs`).
-
----
-
-## The benchmark
-
-**In-browser** (`site/benchmark.html`): spawns batches of glass elements per engine,
-animates them over a live backdrop, and records **avg/min FPS, avg & p95 frame time,
-jank %, and JS heap**. Results are saved per browser in `localStorage`, so running it in
-Chrome → Safari → Firefox builds a cross-browser comparison. Export JSON anytime.
-
-**Automated** (`bench/run-playwright.mjs`): drives the page across every installed engine.
-
-```bash
-npm i                                   # installs playwright-core
-npm run bench                           # uses your installed Chrome
-node bench/run-playwright.mjs --dur 2.5 --counts 1,5,15,30,60 --modes css,svg,svg-clone,webgl
-npx playwright install webkit firefox   # to also bench Safari & Firefox engines
-```
-Writes `bench/results.json` and `bench/results.csv`.
-
-> Note: headless reports vsync-capped 60fps; real differences show under load and on
-> retina (`dpr 2`). `svg-clone` is the heaviest (one clone per element); `webgl` is
-> capped by the browser's ~8–16 live GL contexts — both are surfaced as findings.
-
----
-
-## Releasing (CI)
-
-Two GitHub Actions handle shipping:
-
-- **`.github/workflows/pages.yml`** — deploys `site/` to GitHub Pages on every push to `main` that touches `site/`.
-- **`.github/workflows/release.yml`** — publishes to npm when a `v*` tag is pushed, via **npm Trusted Publishing (OIDC)** — no `NPM_TOKEN`, provenance generated automatically.
-
-**One-time bootstrap** (npm requires the package to exist before a trusted publisher can be configured):
-
-1. `npm publish --access public` once from a logged-in machine to create `glasskit-js`.
-2. npmjs.com → the package → **Settings → Trusted Publisher** → GitHub Actions, repo `amanblog/glasskit`, workflow `release.yml`.
-
-After that, cutting a release is tokenless:
-
-```bash
-npm version patch        # bumps package.json + creates the vX.Y.Z tag & commit
-git push --follow-tags   # CI verifies tag == version, then publishes with provenance
-```
+Built something with it, or want to hack on the engine, generator, or benchmark?
+See **[CONTRIBUTING.md](./CONTRIBUTING.md)**.
 
 ## License
-MIT — see [LICENSE](LICENSE).
+
+MIT — see [LICENSE](./LICENSE).
