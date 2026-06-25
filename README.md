@@ -11,7 +11,7 @@ code in any framework**, and **measure the real performance cost** before you sh
 ```
 liquid-glass.js      ← the engine (zero deps, UMD + <glass-kit> web component)
 liquid-glass.d.ts    ← TypeScript types
-LiquidGlass.jsx      ← React/Next.js wrapper (default export)
+LiquidGlass.mjs      ← React/Next.js wrapper (default export, no JSX — works in any bundler)
 package.json         ← npm package "glasskit-js"
 demo.html            ← minimal standalone playground
 site/                ← the generator website (static, deploy as-is)
@@ -121,14 +121,21 @@ Writes `bench/results.json` and `bench/results.csv`.
 
 ---
 
-## Publishing to npm
+## Releasing (CI)
 
-The engine ships as a single UMD file that already works via CDN and bundlers.
+Two GitHub Actions handle shipping:
+
+- **`.github/workflows/pages.yml`** — deploys `site/` to GitHub Pages on every push to `main` that touches `site/`.
+- **`.github/workflows/release.yml`** — publishes to npm when a `v*` tag is pushed (with provenance). Requires an `NPM_TOKEN` repo secret (npm automation token).
+
+Cutting a release:
 
 ```bash
-npm publish --access public   # name is glasskit-js; replace REPLACE_ME GitHub URLs first
+npm version patch        # bumps package.json + creates the vX.Y.Z tag & commit
+git push --follow-tags   # CI verifies tag == version, then npm publish
 ```
-Optional: add a `tsup` build for separate ESM/CJS/UMD bundles + a dedicated React entry.
+
+To publish by hand instead: `npm publish --provenance --access public`.
 
 ## License
-MIT.
+MIT — see [LICENSE](LICENSE).
