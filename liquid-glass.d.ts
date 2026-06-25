@@ -31,7 +31,7 @@ export interface LiquidGlassOptions {
   curvature?: number;
   /** +1 convex (magnify) .. 0 flat .. -1 concave (shrink). @default 1 */
   convexity?: number;
-  /** Glass tint as "r,g,b". @default "255,255,255" */
+  /** Glass tint — either "r,g,b" (combined with `tintOpacity`) or a full CSS `gradient(...)` string (opacity baked into its color stops). @default "255,255,255" */
   tint?: string;
   /** Tint opacity 0..1. @default 0.08 */
   tintOpacity?: number;
@@ -45,7 +45,7 @@ export interface LiquidGlassOptions {
   brightness?: number;
   /** Outer drop shadow as any CSS box-shadow value; "none" or "" removes it. The inner light border/bezel are controlled by `lightIntensity`. @default "0 8px 30px rgba(0,0,0,0.18)" */
   shadow?: string;
-  /** Override corner radius (px). null = read element's border-radius. @default null */
+  /** Corner radius in px. When set, it both feeds the refraction map AND applies `border-radius` to the element. null = read the element's existing border-radius. @default null */
   radius?: number | null;
   /** Element or selector to refract. Required for `svg-clone` and `webgl`. */
   background?: Element | string | null;

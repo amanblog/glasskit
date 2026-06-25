@@ -22,7 +22,7 @@ const GLASS_KEYS = [
   "tint", "tintOpacity", "sheen", "sheenColor", "saturate", "brightness", "shadow", "radius", "background",
 ];
 
-export default function LiquidGlass({ as: Tag = "div", children, ...props }) {
+const LiquidGlass = React.forwardRef(function LiquidGlass({ as: Tag = "div", children, ...props }, forwardedRef) {
   const ref = useRef(null);
   const instRef = useRef(null);
 
@@ -47,5 +47,14 @@ export default function LiquidGlass({ as: Tag = "div", children, ...props }) {
     instRef.current?.update(JSON.parse(optsKey));
   }, [optsKey]);
 
-  return React.createElement(Tag, { ref, ...rest }, children);
-}
+  // keep our internal ref and forward the node to the caller's ref too
+  const setRef = (node) => {
+    ref.current = node;
+    if (typeof forwardedRef === "function") forwardedRef(node);
+    else if (forwardedRef) forwardedRef.current = node;
+  };
+
+  return React.createElement(Tag, { ref: setRef, ...rest }, children);
+});
+
+export default LiquidGlass;

@@ -73,7 +73,11 @@ It refracts DOM, not `<canvas>` pixels — use `webgl` for canvas/video backgrou
 | Depth | `depth` | | tint | `tint`, `tintOpacity` |
 | Dispersion | `dispersion` | | corner radius | `radius` |
 | Splay | `splay` | | | |
-| Light (angle / %) | `lightAngle` / `lightIntensity` | | | |
+| Light (angle / %) | `lightAngle` / `lightIntensity` | | drop shadow | `shadow` |
+
+- **`tint`** takes either `"r,g,b"` (paired with `tintOpacity`) **or a full CSS gradient** — `tint="linear-gradient(180deg, rgba(255,255,255,.2), rgba(19,19,19,.22))"`.
+- **`radius`** sets `border-radius` on the element *and* the refraction map — `radius={999}` alone gives you a pill; no need to also set it in `style`.
+- **`shadow`** is any CSS `box-shadow` (`"none"` removes it); the inner light border/bezel follow `lightIntensity`.
 
 ## Shapes
 

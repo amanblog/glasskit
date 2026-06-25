@@ -64,7 +64,19 @@
     if (typeof v !== 'string' || !v || v === 'none') return '';
     return /url\(|expression|javascript:|[;{}<>]/i.test(v) ? '' : v;
   }
+  // allow CSS gradient values only; block url()/image-set()/extra declarations
+  function safeGradient(v) {
+    if (typeof v !== 'string') return '';
+    if (/url\(|image-set|element\(|expression|javascript:|[;{}<>]/i.test(v)) return '';
+    return /(^|\s)(repeating-)?(linear|radial|conic)-gradient\(/i.test(v) ? v : '';
+  }
   function num(v, d) { var n = parseFloat(v); return isFinite(n) ? n : d; }
+  // tint background: a full CSS gradient string, else an rgba() built from "r,g,b" + opacity
+  function tintValue(o) {
+    var t = o.tint;
+    if (typeof t === 'string' && /gradient\(/i.test(t)) { var g = safeGradient(t); if (g) return g; }
+    return 'rgba(' + safeRGB(t) + ',' + num(o.tintOpacity, 0.08) + ')';
+  }
   function resolveEl(x) { return typeof x === 'string' ? document.querySelector(x) : x; }
   function readRadius(el) { return parseFloat(getComputedStyle(el).borderRadius) || 0; }
   function ns(tag) { return document.createElementNS('http://www.w3.org/2000/svg', tag); }
@@ -117,7 +129,7 @@
     if ((mode === 'svg-clone' || mode === 'webgl') && !bg) mode = isChromium() ? 'svg' : 'css';
 
     if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
-    var prevBg = el.style.backgroundColor;
+    var prevBg = el.style.background, prevRadius = el.style.borderRadius;
 
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;';
@@ -251,7 +263,7 @@
     /* ---- tint + specular overlay (all modes) ---- */
     function applyOverlay() {
       var li = num(o.lightIntensity, 0.8), a = (num(o.lightAngle, -45) + 90) * Math.PI / 180;
-      if (mode === 'css' || mode === 'svg') el.style.backgroundColor = 'rgba(' + safeRGB(o.tint) + ',' + num(o.tintOpacity, 0.08) + ')';
+      if (mode === 'css' || mode === 'svg') el.style.background = tintValue(o);
       // FACE gloss — controlled by `sheen`/`sheenColor`, independent of the border light below
       var sc = safeRGB(o.sheenColor), sh = num(o.sheen, 0.7);
       overlay.style.background = sh <= 0 ? 'none' :
@@ -371,14 +383,17 @@
     var ro = new ResizeObserver(function () { refreshMap(); if (mode === 'svg-clone') syncClone(); });
     ro.observe(el);
 
-    refreshMap(); applyFilterParams(); applyOverlay();
+    // when an explicit radius is given, round the element itself (not just the refraction map)
+    function applyRadius() { if (o.radius != null) el.style.borderRadius = num(o.radius, 0) + 'px'; }
+
+    refreshMap(); applyFilterParams(); applyOverlay(); applyRadius();
 
     var instance = {
       el: el, mode: mode,
       update: function (patch) {
         Object.assign(o, patch || {});
         if (patch && patch.background != null && mode === 'webgl') loadGLBg(resolveEl(o.background));
-        refreshMap(); applyFilterParams(); applyOverlay();
+        refreshMap(); applyFilterParams(); applyOverlay(); applyRadius();
         return instance;
       },
       refresh: function () { if (mode === 'svg-clone') reclone(); else if (mode === 'webgl') loadGLBg(resolveEl(o.background)); return instance; },
@@ -388,7 +403,7 @@
         // free the WebGL context explicitly — browsers cap ~16 per page
         if (gl) { var lc = gl.getExtension('WEBGL_lose_context'); if (lc) lc.loseContext(); gl = null; }
         [svg, lensWrap, glcanvas, overlay].forEach(function (n) { if (n && n.parentNode) n.parentNode.removeChild(n); });
-        el.style.backdropFilter = ''; el.style.webkitBackdropFilter = ''; el.style.backgroundColor = prevBg;
+        el.style.backdropFilter = ''; el.style.webkitBackdropFilter = ''; el.style.background = prevBg; el.style.borderRadius = prevRadius;
       }
     };
     return instance;

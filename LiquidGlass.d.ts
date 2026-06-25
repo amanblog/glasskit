@@ -9,5 +9,7 @@ export interface LiquidGlassProps
   children?: React.ReactNode;
 }
 
-declare const LiquidGlass: React.FC<LiquidGlassProps>;
+declare const LiquidGlass: React.ForwardRefExoticComponent<
+  LiquidGlassProps & React.RefAttributes<HTMLElement>
+>;
 export default LiquidGlass;
