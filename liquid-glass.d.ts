@@ -43,6 +43,8 @@ export interface LiquidGlassOptions {
   saturate?: number;
   /** Backdrop brightness (css mode). @default 1.04 */
   brightness?: number;
+  /** Outer drop shadow as any CSS box-shadow value; "none" or "" removes it. The inner light border/bezel are controlled by `lightIntensity`. @default "0 8px 30px rgba(0,0,0,0.18)" */
+  shadow?: string;
   /** Override corner radius (px). null = read element's border-radius. @default null */
   radius?: number | null;
   /** Element or selector to refract. Required for `svg-clone` and `webgl`. */

@@ -42,6 +42,7 @@
     sheenColor: '255,255,255', // "r,g,b" — recolor the gloss
     saturate: 1.4,
     brightness: 1.04,
+    shadow: '0 8px 30px rgba(0,0,0,0.18)', // outer drop shadow; 'none'/'' removes it, or pass any CSS box-shadow
     radius: null,         // null = read element border-radius
     background: null      // Element|selector — required for 'svg-clone' & 'webgl'
   };
@@ -58,6 +59,11 @@
   function clamp8(v) { return v < 0 ? 0 : v > 255 ? 255 : Math.round(v); }
   // only ever emit a clean "r,g,b" triplet into inline CSS — blocks url()/expression smuggling
   function safeRGB(v) { return (typeof v === 'string' && /^\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*$/.test(v)) ? v.replace(/\s+/g, '') : '255,255,255'; }
+  // allow only box-shadow-shaped CSS (lengths/colors); reject url()/expression/extra declarations
+  function safeShadow(v) {
+    if (typeof v !== 'string' || !v || v === 'none') return '';
+    return /url\(|expression|javascript:|[;{}<>]/i.test(v) ? '' : v;
+  }
   function num(v, d) { var n = parseFloat(v); return isFinite(n) ? n : d; }
   function resolveEl(x) { return typeof x === 'string' ? document.querySelector(x) : x; }
   function readRadius(el) { return parseFloat(getComputedStyle(el).borderRadius) || 0; }
@@ -251,11 +257,13 @@
       overlay.style.background = sh <= 0 ? 'none' :
         'linear-gradient(' + (num(o.lightAngle, -45) + 90) + 'deg,rgba(' + sc + ',' + (0.6 * sh).toFixed(3) +
         ') 0%,rgba(' + sc + ',0) 30%,rgba(' + sc + ',0) 70%,rgba(' + sc + ',' + (0.14 * sh).toFixed(3) + ') 100%)';
-      overlay.style.boxShadow =
+      // inset light border + bezel (scale with lightIntensity) and a separately controllable outer drop shadow
+      var insets =
         'inset 0 0 0 1px rgba(255,255,255,' + (0.30 * li) + '),' +
         'inset ' + (Math.cos(a) * 2).toFixed(1) + 'px ' + (Math.sin(a) * 2).toFixed(1) + 'px 2px rgba(255,255,255,' + (0.5 * li) + '),' +
-        'inset ' + (-Math.cos(a) * 2).toFixed(1) + 'px ' + (-Math.sin(a) * 2).toFixed(1) + 'px 6px rgba(0,0,0,.15),' +
-        '0 8px 30px rgba(0,0,0,.18)';
+        'inset ' + (-Math.cos(a) * 2).toFixed(1) + 'px ' + (-Math.sin(a) * 2).toFixed(1) + 'px 6px rgba(0,0,0,.15)';
+      var drop = safeShadow(o.shadow);
+      overlay.style.boxShadow = drop ? insets + ',' + drop : insets;
     }
 
     /* ------------------------------ WebGL ------------------------------ */
@@ -389,7 +397,7 @@
   /* ===================== <glass-kit> web component ===================== */
   var ATTRS = ['mode', 'frost', 'refraction', 'depth', 'dispersion', 'splay', 'light-angle',
     'light-intensity', 'curvature', 'convexity', 'tint', 'tint-opacity', 'sheen', 'sheen-color',
-    'radius', 'background'];
+    'shadow', 'radius', 'background'];
   function camel(s) { return s.replace(/-([a-z])/g, function (_, c) { return c.toUpperCase(); }); }
   function defineElement() {
     if (typeof customElements === 'undefined' || customElements.get('glass-kit')) return;
@@ -399,7 +407,7 @@
       ATTRS.forEach(function (a) {
         if (!node.hasAttribute(a)) return;
         var v = node.getAttribute(a), key = camel(a);
-        opts[key] = (a === 'mode' || a === 'tint' || a === 'sheen-color' || a === 'background') ? v : parseFloat(v);
+        opts[key] = (a === 'mode' || a === 'tint' || a === 'sheen-color' || a === 'shadow' || a === 'background') ? v : parseFloat(v);
       });
       return opts;
     }
