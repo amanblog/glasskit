@@ -8,7 +8,9 @@
     frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0,
     lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1,
     tintOpacity: 0.08, sheen: 0.7, sheenColor: "255,255,255",
+    shadow: "0 8px 30px rgba(0,0,0,0.18)",
   };
+  var DEFAULT_SHADOW = "0 8px 30px rgba(0,0,0,0.18)";
 
   var $ = function (s) { return document.querySelector(s); };
   var glass = $("#glass"), sceneDom = $("#sceneDom"), sceneCanvas = $("#sceneCanvas");
@@ -77,7 +79,7 @@
       mode: state.mode, frost: state.frost, refraction: state.refraction, depth: state.depth,
       dispersion: state.dispersion, splay: state.splay, lightAngle: state.lightAngle,
       lightIntensity: state.lightIntensity, curvature: state.curvature, convexity: state.convexity,
-      tintOpacity: state.tintOpacity, sheen: state.sheen, sheenColor: state.sheenColor, radius: state.radius,
+      tintOpacity: state.tintOpacity, sheen: state.sheen, sheenColor: state.sheenColor, shadow: state.shadow, radius: state.radius,
     };
     if (state.mode === "svg-clone") o.background = sceneDom;
     if (state.mode === "webgl") o.background = sceneCanvas;
@@ -157,7 +159,7 @@
     "Modal": { shape: "card", frost: 16, refraction: 40, depth: 24, dispersion: 0.1, splay: 0.5, lightAngle: -45, lightIntensity: 0.6, curvature: 2, convexity: 1, tintOpacity: 0.12 },
     "Lens": { shape: "circle", frost: 2, refraction: 160, depth: 50, dispersion: 0.6, splay: 0, lightAngle: -45, lightIntensity: 0.85, curvature: 3, convexity: 1, tintOpacity: 0.04 },
     "Magnifier": { shape: "circle", frost: 0, refraction: 120, depth: 60, dispersion: 0.25, splay: 0, lightAngle: -30, lightIntensity: 0.8, curvature: 4, convexity: 1, tintOpacity: 0.02 },
-    "Reset": Object.assign({ shape: "card" }, { frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0, lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1, tintOpacity: 0.08 }),
+    "Reset": Object.assign({ shape: "card" }, { frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0, lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1, tintOpacity: 0.08, shadow: "0 8px 30px rgba(0,0,0,0.18)" }),
   };
   function buildPresets() {
     var host = $("#presets"); host.innerHTML = "";
@@ -171,6 +173,7 @@
     if (p.shape) { var s = SHAPES[p.shape]; state.w = s[0]; state.h = s[1]; state.radius = s[2]; $("#shape").value = p.shape; }
     buildSliders(FIGMA, $("#figmaSliders")); buildSliders(OPTICAL, $("#opticalSliders"));
     sheenColorInput.value = rgbToHex(state.sheenColor);
+    syncShadowControl();
     rebuild();
   }
 
@@ -203,6 +206,7 @@
       "convexity: " + num(state.convexity), "tintOpacity: " + num(state.tintOpacity),
       "sheen: " + num(state.sheen), "radius: " + num(state.radius)];
     if (state.sheenColor !== "255,255,255") p.push("sheenColor: '" + state.sheenColor + "'");
+    if (state.shadow !== DEFAULT_SHADOW) p.push("shadow: '" + state.shadow + "'");
     if (needsBg()) p.push("background: '#bg'  // the element/canvas to refract");
     return indent + p.join(",\n" + indent);
   }
@@ -218,7 +222,8 @@
         "dispersion={" + num(state.dispersion) + "} splay={" + num(state.splay) + "}",
         "lightAngle={" + num(state.lightAngle) + "} lightIntensity={" + num(state.lightIntensity) + "}",
         "curvature={" + num(state.curvature) + "} convexity={" + num(state.convexity) + "} tintOpacity={" + num(state.tintOpacity) + "}",
-        "sheen={" + num(state.sheen) + "}" + (state.sheenColor !== "255,255,255" ? " sheenColor=\"" + state.sheenColor + "\"" : "")];
+        "sheen={" + num(state.sheen) + "}" + (state.sheenColor !== "255,255,255" ? " sheenColor=\"" + state.sheenColor + "\"" : "") +
+        (state.shadow !== DEFAULT_SHADOW ? " shadow=\"" + state.shadow + "\"" : "")];
       var bg = needsBg() ? "\n      background=\"#bg\"" : "";
       return "// npm i glasskit-js\nimport Glass from 'glasskit-js/react';\n\nexport default function Demo() {\n  return (\n    <Glass\n      " +
         attrs.join("\n      ") + bg + "\n      radius={" + num(state.radius) + "}\n      style={{ width: " + state.w + ", height: " + state.h +
@@ -242,23 +247,26 @@
         "\" light-intensity=\"" + num(state.lightIntensity) + "\"\n  curvature=\"" + num(state.curvature) + "\" convexity=\"" + num(state.convexity) +
         "\" tint-opacity=\"" + num(state.tintOpacity) + "\" sheen=\"" + num(state.sheen) + "\"" +
         (state.sheenColor !== "255,255,255" ? " sheen-color=\"" + state.sheenColor + "\"" : "") +
+        (state.shadow !== DEFAULT_SHADOW ? " shadow=\"" + state.shadow + "\"" : "") +
         " radius=\"" + num(state.radius) + "\"" + bg +
         "\n  style=\"" + styleStr() + ";display:flex;align-items:flex-end;padding:20px;color:#fff\">\n  Liquid Glass\n</glass-kit>";
     },
     css: function () {
       var li = state.lightIntensity;
+      var drop = state.shadow && state.shadow !== "none" ? ",\n    " + state.shadow : "";
       return "/* Pure CSS — every browser, but BLUR ONLY (no refraction).\n   For real refraction use the React / Vue / Vanilla / Web Component tabs. */\n.glass {\n  width: " +
         state.w + "px; height: " + state.h + "px;\n  border-radius: " + (state.shape === "circle" ? "50%" : state.radius + "px") + ";\n  background: rgba(255, 255, 255, " + num(state.tintOpacity) +
         ");\n  backdrop-filter: blur(" + num(state.frost) + "px) saturate(1.4) brightness(1.04);\n  -webkit-backdrop-filter: blur(" + num(state.frost) +
         "px) saturate(1.4) brightness(1.04);\n  box-shadow:\n    inset 0 0 0 1px rgba(255,255,255," + num(0.3 * li) +
-        "),\n    inset 1.4px 1.4px 2px rgba(255,255,255," + num(0.5 * li) + "),\n    0 8px 30px rgba(0,0,0,0.18);\n}";
+        "),\n    inset 1.4px 1.4px 2px rgba(255,255,255," + num(0.5 * li) + ")" + drop + ";\n}";
     },
     tailwind: function () {
       var li = Math.round(state.lightIntensity * 100) / 100;
+      var drop = state.shadow && state.shadow !== "none" ? "," + state.shadow.replace(/ /g, "_") : "";
       return "<!-- Pure CSS via Tailwind (blur only, no refraction). Arbitrary values mirror your sliders. -->\n<div class=\"\n  w-[" +
         state.w + "px] h-[" + state.h + "px] rounded-[" + (state.shape === "circle" ? "9999px" : state.radius + "px") + "]\n  bg-white/[" + num(state.tintOpacity) +
         "]\n  backdrop-blur-[" + num(state.frost) + "px] backdrop-saturate-150 backdrop-brightness-105\n  shadow-[inset_0_0_0_1px_rgba(255,255,255," + num(0.3 * li) +
-        "),0_8px_30px_rgba(0,0,0,0.18)]\n\">\n  Liquid Glass\n</div>";
+        ")" + drop + "]\n\">\n  Liquid Glass\n</div>";
     },
   };
   var TABS = ["react", "vue", "vanilla", "web component", "css", "tailwind"];
@@ -300,6 +308,27 @@
   var sheenColorInput = $("#sheenColor");
   sheenColorInput.value = rgbToHex(state.sheenColor);
   sheenColorInput.addEventListener("input", function (e) { state.sheenColor = hexToRgb(e.target.value); liveUpdate(); });
+
+  /* --------------------------- drop shadow --------------------------- */
+  var shadowPreset = $("#shadowPreset"), shadowCustom = $("#shadowCustom"), shadowCustomRow = $("#shadowCustomRow");
+  // value-strings here must match the <option value> in index.html
+  function syncShadowControl() {
+    var opts = Array.prototype.map.call(shadowPreset.options, function (o) { return o.value; });
+    if (opts.indexOf(state.shadow) >= 0 && state.shadow !== "__custom") {
+      shadowPreset.value = state.shadow; shadowCustomRow.style.display = "none";
+    } else {
+      shadowPreset.value = "__custom"; shadowCustomRow.style.display = ""; shadowCustom.value = state.shadow;
+    }
+  }
+  shadowPreset.addEventListener("change", function (e) {
+    if (e.target.value === "__custom") {
+      shadowCustomRow.style.display = ""; shadowCustom.value = state.shadow; shadowCustom.focus();
+    } else {
+      shadowCustomRow.style.display = "none"; state.shadow = e.target.value; liveUpdate();
+    }
+  });
+  shadowCustom.addEventListener("input", function (e) { state.shadow = e.target.value.trim(); liveUpdate(); });
+  syncShadowControl();
 
   /* ------------------------------ boot ------------------------------ */
   window.addEventListener("resize", function () { if (state.mode === "webgl") paintCanvasScene(); });

@@ -208,6 +208,20 @@
       <div class="row" id="sheenColorRow">
         <label>Sheen color <b><input type="color" id="sheenColor" value="#ffffff" style="width:28px;height:18px;padding:0;border:0;background:none;cursor:pointer;vertical-align:middle"></b></label>
       </div>
+      <div class="grp">Drop shadow</div>
+      <div class="row">
+        <select id="shadowPreset">
+          <option value="0 8px 30px rgba(0,0,0,0.18)">Default</option>
+          <option value="none">None</option>
+          <option value="0 4px 16px rgba(0,0,0,0.12)">Soft</option>
+          <option value="0 24px 70px rgba(0,0,0,0.45)">Strong</option>
+          <option value="__custom">Custom…</option>
+        </select>
+      </div>
+      <div class="row" id="shadowCustomRow" style="display:none">
+        <input id="shadowCustom" type="text" placeholder="e.g. 0 10px 40px rgba(0,0,0,.3)"
+          style="width:100%;background:var(--bg2);color:var(--tx);border:1px solid var(--bd);border-radius:9px;padding:8px;font-size:13px">
+      </div>
     </div>
   </aside>
 </main>
@@ -252,7 +266,7 @@
   · <a href="https://www.npmjs.com/package/glasskit-js">npm</a>
 </footer>
 
-<script src="./liquid-glass.js?v=3"></script>
-<script src="./app.js?v=4"></script>
+<script src="./liquid-glass.js?v=4"></script>
+<script src="./app.js?v=5"></script>
 </body>
 </html>
