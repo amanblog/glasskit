@@ -1,6 +1,6 @@
 {
   "name": "glasskit-js",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Drop-in Apple/Figma 'Liquid Glass' for any element — switch between pure CSS, SVG displacement (live backdrop), cross-browser clone-mode, or WebGL. Real refraction, chromatic aberration, specular highlight. Zero dependencies. Class + <liquid-glass> web component.",
   "keywords": [
     "liquid-glass",

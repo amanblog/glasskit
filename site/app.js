@@ -7,7 +7,7 @@
     w: 340, h: 210, radius: 30,
     frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0,
     lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1, bevel: 0.6,
-    tintOpacity: 0, sheen: 0, sheenColor: "255,255,255",
+    tintOpacity: 0, tint: "255,255,255", sheen: 0, sheenColor: "255,255,255",
     shadow: "none",
   };
   var DEFAULT_SHADOW = "0 8px 30px rgba(0,0,0,0.18)";
@@ -79,7 +79,7 @@
       mode: state.mode, frost: state.frost, refraction: state.refraction, depth: state.depth,
       dispersion: state.dispersion, splay: state.splay, lightAngle: state.lightAngle,
       lightIntensity: state.lightIntensity, curvature: state.curvature, convexity: state.convexity, bevel: state.bevel,
-      tintOpacity: state.tintOpacity, sheen: state.sheen, sheenColor: state.sheenColor, shadow: state.shadow, radius: state.radius,
+      tintOpacity: state.tintOpacity, tint: state.tint, sheen: state.sheen, sheenColor: state.sheenColor, shadow: state.shadow, radius: state.radius,
     };
     if (state.mode === "svg-clone") o.background = sceneDom;
     if (state.mode === "webgl") o.background = sceneCanvas;
@@ -168,7 +168,7 @@
     "Modal": { shape: "card", frost: 16, refraction: 40, depth: 24, dispersion: 0.1, splay: 0.5, lightAngle: -45, lightIntensity: 0.6, curvature: 2, convexity: 1, tintOpacity: 0.12 },
     "Lens": { shape: "circle", frost: 2, refraction: 160, depth: 50, dispersion: 0.6, splay: 0, lightAngle: -45, lightIntensity: 0.85, curvature: 3, convexity: 1, tintOpacity: 0.04 },
     "Magnifier": { shape: "circle", frost: 0, refraction: 120, depth: 60, dispersion: 0.25, splay: 0, lightAngle: -30, lightIntensity: 0.8, curvature: 4, convexity: 1, tintOpacity: 0.02 },
-    "Reset": Object.assign({ shape: "card" }, { frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0, lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1, bevel: 0.6, tintOpacity: 0, sheen: 0, shadow: "none" }),
+    "Reset": Object.assign({ shape: "card" }, { frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0, lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1, bevel: 0.6, tintOpacity: 0, tint: "255,255,255", sheen: 0, shadow: "none" }),
   };
   function buildPresets() {
     var host = $("#presets"); host.innerHTML = "";
@@ -181,6 +181,7 @@
     Object.keys(p).forEach(function (k) { state[k] = p[k]; });
     if (p.shape) { var s = SHAPES[p.shape]; state.w = s[0]; state.h = s[1]; state.radius = s[2]; $("#shape").value = p.shape; }
     buildSliders(FIGMA, $("#figmaSliders")); buildSliders(OPTICAL, $("#opticalSliders")); buildSliders(ADVANCED, $("#advancedSliders"));
+    tintColorInput.value = rgbToHex(state.tint);
     sheenColorInput.value = rgbToHex(state.sheenColor);
     syncShadowControl();
     rebuild();
@@ -215,6 +216,7 @@
       "convexity: " + num(state.convexity), "tintOpacity: " + num(state.tintOpacity),
       "sheen: " + num(state.sheen), "radius: " + num(state.radius)];
     if (state.bevel !== 1) p.push("bevel: " + num(state.bevel));
+    if (state.tint !== "255,255,255") p.push("tint: '" + state.tint + "'");
     if (state.sheenColor !== "255,255,255") p.push("sheenColor: '" + state.sheenColor + "'");
     if (state.shadow !== DEFAULT_SHADOW) p.push("shadow: '" + state.shadow + "'");
     if (needsBg()) p.push("background: '#bg'  // the element/canvas to refract");
@@ -232,7 +234,7 @@
         "dispersion={" + num(state.dispersion) + "} splay={" + num(state.splay) + "}",
         "lightAngle={" + num(state.lightAngle) + "} lightIntensity={" + num(state.lightIntensity) + "}",
         "curvature={" + num(state.curvature) + "} convexity={" + num(state.convexity) + "}" + (state.bevel !== 1 ? " bevel={" + num(state.bevel) + "}" : "") + " tintOpacity={" + num(state.tintOpacity) + "}",
-        "sheen={" + num(state.sheen) + "}" + (state.sheenColor !== "255,255,255" ? " sheenColor=\"" + state.sheenColor + "\"" : "") +
+        "sheen={" + num(state.sheen) + "}" + (state.tint !== "255,255,255" ? " tint=\"" + state.tint + "\"" : "") + (state.sheenColor !== "255,255,255" ? " sheenColor=\"" + state.sheenColor + "\"" : "") +
         (state.shadow !== DEFAULT_SHADOW ? " shadow=\"" + state.shadow + "\"" : "")];
       var bg = needsBg() ? "\n      background=\"#bg\"" : "";
       return "// npm i glasskit-js\nimport Glass from 'glasskit-js/react';\n\nexport default function Demo() {\n  return (\n    <Glass\n      " +
@@ -255,7 +257,7 @@
         "\"\n  frost=\"" + num(state.frost) + "\" refraction=\"" + num(state.refraction) + "\" depth=\"" + num(state.depth) +
         "\" dispersion=\"" + num(state.dispersion) + "\"\n  splay=\"" + num(state.splay) + "\" light-angle=\"" + num(state.lightAngle) +
         "\" light-intensity=\"" + num(state.lightIntensity) + "\"\n  curvature=\"" + num(state.curvature) + "\" convexity=\"" + num(state.convexity) +
-        "\"" + (state.bevel !== 1 ? " bevel=\"" + num(state.bevel) + "\"" : "") + " tint-opacity=\"" + num(state.tintOpacity) + "\" sheen=\"" + num(state.sheen) + "\"" +
+        "\"" + (state.bevel !== 1 ? " bevel=\"" + num(state.bevel) + "\"" : "") + (state.tint !== "255,255,255" ? " tint=\"" + state.tint + "\"" : "") + " tint-opacity=\"" + num(state.tintOpacity) + "\" sheen=\"" + num(state.sheen) + "\"" +
         (state.sheenColor !== "255,255,255" ? " sheen-color=\"" + state.sheenColor + "\"" : "") +
         (state.shadow !== DEFAULT_SHADOW ? " shadow=\"" + state.shadow + "\"" : "") +
         " radius=\"" + num(state.radius) + "\"" + bg +
@@ -265,7 +267,7 @@
       var li = state.lightIntensity;
       var drop = state.shadow && state.shadow !== "none" ? ",\n    " + state.shadow : "";
       return "/* Pure CSS — every browser, but BLUR ONLY (no refraction).\n   For real refraction use the React / Vue / Vanilla / Web Component tabs. */\n.glass {\n  width: " +
-        state.w + "px; height: " + state.h + "px;\n  border-radius: " + (state.shape === "circle" ? "50%" : state.radius + "px") + ";\n  background: rgba(255, 255, 255, " + num(state.tintOpacity) +
+        state.w + "px; height: " + state.h + "px;\n  border-radius: " + (state.shape === "circle" ? "50%" : state.radius + "px") + ";\n  background: rgba(" + state.tint + ", " + num(state.tintOpacity) +
         ");\n  backdrop-filter: blur(" + num(state.frost) + "px) saturate(1.4) brightness(1.04);\n  -webkit-backdrop-filter: blur(" + num(state.frost) +
         "px) saturate(1.4) brightness(1.04);\n  box-shadow:\n    inset 0 0 0 1px rgba(255,255,255," + num(0.3 * li) +
         "),\n    inset 1.4px 1.4px 2px rgba(255,255,255," + num(0.5 * li) + ")" + drop + ";\n}";
@@ -274,8 +276,8 @@
       var li = Math.round(state.lightIntensity * 100) / 100;
       var drop = state.shadow && state.shadow !== "none" ? "," + state.shadow.replace(/ /g, "_") : "";
       return "<!-- Pure CSS via Tailwind (blur only, no refraction). Arbitrary values mirror your sliders. -->\n<div class=\"\n  w-[" +
-        state.w + "px] h-[" + state.h + "px] rounded-[" + (state.shape === "circle" ? "9999px" : state.radius + "px") + "]\n  bg-white/[" + num(state.tintOpacity) +
-        "]\n  backdrop-blur-[" + num(state.frost) + "px] backdrop-saturate-150 backdrop-brightness-105\n  shadow-[inset_0_0_0_1px_rgba(255,255,255," + num(0.3 * li) +
+        state.w + "px] h-[" + state.h + "px] rounded-[" + (state.shape === "circle" ? "9999px" : state.radius + "px") + "]\n  bg-[rgba(" + state.tint.replace(/\s+/g, "") + "," + num(state.tintOpacity) +
+        ")]\n  backdrop-blur-[" + num(state.frost) + "px] backdrop-saturate-150 backdrop-brightness-105\n  shadow-[inset_0_0_0_1px_rgba(255,255,255," + num(0.3 * li) +
         ")" + drop + "]\n\">\n  Liquid Glass\n</div>";
     },
   };
@@ -315,6 +317,9 @@
   /* --------------------------- sheen color --------------------------- */
   function rgbToHex(rgb) { return "#" + rgb.split(",").map(function (x) { return (+x).toString(16).padStart(2, "0"); }).join(""); }
   function hexToRgb(h) { var n = parseInt(h.slice(1), 16); return ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255); }
+  var tintColorInput = $("#tintColor");
+  tintColorInput.value = rgbToHex(state.tint);
+  tintColorInput.addEventListener("input", function (e) { state.tint = hexToRgb(e.target.value); liveUpdate(); });
   var sheenColorInput = $("#sheenColor");
   sheenColorInput.value = rgbToHex(state.sheenColor);
   sheenColorInput.addEventListener("input", function (e) { state.sheenColor = hexToRgb(e.target.value); liveUpdate(); });

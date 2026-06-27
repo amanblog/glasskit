@@ -72,11 +72,16 @@
     return /(^|\s)(repeating-)?(linear|radial|conic)-gradient\(/i.test(v) ? v : '';
   }
   function num(v, d) { var n = parseFloat(v); return isFinite(n) ? n : d; }
-  // tint background: a full CSS gradient string, else an rgba() built from "r,g,b" + opacity
+  // any CSS color value (rgb/rgba/hsl/hex/named), minus injection vectors
+  function safeColor(v) { return (typeof v === 'string' && v && !/url\(|image-set|expression|javascript:|[;{}<>]/i.test(v)) ? v : ''; }
+  // tint background, accepting (in order): a bare "r,g,b" triplet (+ tintOpacity),
+  // a CSS gradient, or any CSS color (rgb/rgba/hsl/hex/named — its own alpha respected).
   function tintValue(o) {
-    var t = o.tint;
-    if (typeof t === 'string' && /gradient\(/i.test(t)) { var g = safeGradient(t); if (g) return g; }
-    return 'rgba(' + safeRGB(t) + ',' + num(o.tintOpacity, 0.08) + ')';
+    var t = typeof o.tint === 'string' ? o.tint.trim() : '';
+    if (/^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}$/.test(t)) return 'rgba(' + t.replace(/\s+/g, '') + ',' + num(o.tintOpacity, 0.08) + ')';
+    if (/gradient\(/i.test(t)) { var g = safeGradient(t); if (g) return g; }
+    var c = safeColor(t); if (c) return c;
+    return 'rgba(255,255,255,' + num(o.tintOpacity, 0.08) + ')';
   }
   function resolveEl(x) { return typeof x === 'string' ? document.querySelector(x) : x; }
   function readRadius(el) { return parseFloat(getComputedStyle(el).borderRadius) || 0; }
@@ -272,12 +277,21 @@
     /* ---- tint + specular overlay (all modes) ---- */
     function applyOverlay() {
       var li = num(o.lightIntensity, 0.8), a = (num(o.lightAngle, -45) + 90) * Math.PI / 180;
-      if (mode === 'css' || mode === 'svg') el.style.background = tintValue(o);
+      var tintBg = tintValue(o);
       // FACE gloss — controlled by `sheen`/`sheenColor`, independent of the border light below
       var sc = safeRGB(o.sheenColor), sh = num(o.sheen, 0.7);
-      overlay.style.background = sh <= 0 ? 'none' :
+      var sheenBg = sh <= 0 ? '' :
         'linear-gradient(' + (num(o.lightAngle, -45) + 90) + 'deg,rgba(' + sc + ',' + (0.6 * sh).toFixed(3) +
         ') 0%,rgba(' + sc + ',0) 30%,rgba(' + sc + ',0) 70%,rgba(' + sc + ',' + (0.14 * sh).toFixed(3) + ') 100%)';
+      if (mode === 'css' || mode === 'svg') {
+        // the element itself is the glass: tint goes on its background, sheen on the overlay above
+        el.style.background = tintBg;
+        overlay.style.background = sheenBg || 'none';
+      } else {
+        // svg-clone / webgl: the element is transparent (refraction lives in a layer below),
+        // so the tint rides on the overlay, under the sheen, above the refraction
+        overlay.style.background = sheenBg ? sheenBg + ',' + tintBg : tintBg;
+      }
       // depth: a subtle inner shadow on the side away from the light (scales with `bevel`),
       // plus the outer drop shadow. The bright edge light is handled by the conic rim below.
       var bv = num(o.bevel, 1);
@@ -457,5 +471,5 @@
   }
   if (typeof window !== 'undefined') { if (document.readyState !== 'loading') defineElement(); else document.addEventListener('DOMContentLoaded', defineElement); }
 
-  return { apply: apply, defineElement: defineElement, isChromium: isChromium, pickMode: pickMode, DEFAULTS: DEFAULTS, version: '1.2.0' };
+  return { apply: apply, defineElement: defineElement, isChromium: isChromium, pickMode: pickMode, DEFAULTS: DEFAULTS, version: '1.2.1' };
 });
