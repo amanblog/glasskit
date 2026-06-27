@@ -31,6 +31,8 @@ export interface LiquidGlassOptions {
   curvature?: number;
   /** +1 convex (magnify) .. 0 flat .. -1 concave (shrink). @default 1 */
   convexity?: number;
+  /** Directional edge "thickness" — the 3D bevel highlight/shadow. 1 = full bevel, 0 = flat pane with just the rim border (Safari-search-field look). @default 1 */
+  bevel?: number;
   /** Glass tint — either "r,g,b" (combined with `tintOpacity`) or a full CSS `gradient(...)` string (opacity baked into its color stops). @default "255,255,255" */
   tint?: string;
   /** Tint opacity 0..1. @default 0.08 */

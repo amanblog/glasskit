@@ -36,6 +36,7 @@
     lightIntensity: 0.8,  // Figma "Light" %    — specular highlight (0..1)
     curvature: 2.2,       // profile exponent: ~2 spherical, ~4 squircle
     convexity: 1,         // +1 convex (magnify) .. 0 flat .. -1 concave (shrink)
+    bevel: 1,             // directional edge "thickness" (1 = full 3D bevel, 0 = flat pane + border only)
     tint: '255,255,255',  // "r,g,b"
     tintOpacity: 0.08,
     sheen: 0.7,           // diagonal gloss over the card FACE (0 = remove; border stays)
@@ -134,6 +135,14 @@
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;';
     el.appendChild(overlay);
+
+    // directional edge-light ring: a conic gradient masked to the border, so the rim is
+    // brightest on the two edges aligned with the light and dim on the perpendicular ones.
+    var rim = document.createElement('div');
+    rim.style.cssText = 'position:absolute;inset:0;box-sizing:border-box;border-radius:inherit;pointer-events:none;z-index:3;' +
+      '-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;' +
+      'mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;';
+    el.appendChild(rim);
 
     var svg, filter, feImage, feR, feG, feB, feBlur;
     var lensWrap, clone;            // svg-clone
@@ -269,13 +278,22 @@
       overlay.style.background = sh <= 0 ? 'none' :
         'linear-gradient(' + (num(o.lightAngle, -45) + 90) + 'deg,rgba(' + sc + ',' + (0.6 * sh).toFixed(3) +
         ') 0%,rgba(' + sc + ',0) 30%,rgba(' + sc + ',0) 70%,rgba(' + sc + ',' + (0.14 * sh).toFixed(3) + ') 100%)';
-      // inset light border + bezel (scale with lightIntensity) and a separately controllable outer drop shadow
-      var insets =
-        'inset 0 0 0 1px rgba(255,255,255,' + (0.30 * li) + '),' +
-        'inset ' + (Math.cos(a) * 2).toFixed(1) + 'px ' + (Math.sin(a) * 2).toFixed(1) + 'px 2px rgba(255,255,255,' + (0.5 * li) + '),' +
-        'inset ' + (-Math.cos(a) * 2).toFixed(1) + 'px ' + (-Math.sin(a) * 2).toFixed(1) + 'px 6px rgba(0,0,0,.15)';
+      // depth: a subtle inner shadow on the side away from the light (scales with `bevel`),
+      // plus the outer drop shadow. The bright edge light is handled by the conic rim below.
+      var bv = num(o.bevel, 1);
+      var la = num(o.lightAngle, -45);
+      var insets = 'inset ' + (-Math.cos(a) * 2).toFixed(1) + 'px ' + (-Math.sin(a) * 2).toFixed(1) + 'px 6px rgba(0,0,0,' + (0.15 * bv).toFixed(3) + ')';
       var drop = safeShadow(o.shadow);
       overlay.style.boxShadow = drop ? insets + ',' + drop : insets;
+
+      // Apple-style rim: peaks on the two edges along the light axis, dim on the perpendicular edges.
+      var rw = (0.6 + 0.5 * bv).toFixed(2);               // hairline rim (~1px), barely grows with bevel
+      var hi = (0.9 * li).toFixed(3), lo = (0.05 * li).toFixed(3);
+      rim.style.padding = rw + 'px';
+      rim.style.background = 'conic-gradient(from ' + (la + 90).toFixed(1) + 'deg,' +
+        'rgba(255,255,255,' + hi + '),rgba(255,255,255,' + lo + ') 90deg,' +
+        'rgba(255,255,255,' + hi + ') 180deg,rgba(255,255,255,' + lo + ') 270deg,' +
+        'rgba(255,255,255,' + hi + '))';
     }
 
     /* ------------------------------ WebGL ------------------------------ */
@@ -402,7 +420,7 @@
         ro.disconnect();
         // free the WebGL context explicitly — browsers cap ~16 per page
         if (gl) { var lc = gl.getExtension('WEBGL_lose_context'); if (lc) lc.loseContext(); gl = null; }
-        [svg, lensWrap, glcanvas, overlay].forEach(function (n) { if (n && n.parentNode) n.parentNode.removeChild(n); });
+        [svg, lensWrap, glcanvas, overlay, rim].forEach(function (n) { if (n && n.parentNode) n.parentNode.removeChild(n); });
         el.style.backdropFilter = ''; el.style.webkitBackdropFilter = ''; el.style.background = prevBg; el.style.borderRadius = prevRadius;
       }
     };
@@ -411,7 +429,7 @@
 
   /* ===================== <glass-kit> web component ===================== */
   var ATTRS = ['mode', 'frost', 'refraction', 'depth', 'dispersion', 'splay', 'light-angle',
-    'light-intensity', 'curvature', 'convexity', 'tint', 'tint-opacity', 'sheen', 'sheen-color',
+    'light-intensity', 'curvature', 'convexity', 'bevel', 'tint', 'tint-opacity', 'sheen', 'sheen-color',
     'shadow', 'radius', 'background'];
   function camel(s) { return s.replace(/-([a-z])/g, function (_, c) { return c.toUpperCase(); }); }
   function defineElement() {
@@ -439,5 +457,5 @@
   }
   if (typeof window !== 'undefined') { if (document.readyState !== 'loading') defineElement(); else document.addEventListener('DOMContentLoaded', defineElement); }
 
-  return { apply: apply, defineElement: defineElement, isChromium: isChromium, pickMode: pickMode, DEFAULTS: DEFAULTS, version: '1.1.0' };
+  return { apply: apply, defineElement: defineElement, isChromium: isChromium, pickMode: pickMode, DEFAULTS: DEFAULTS, version: '1.2.0' };
 });

@@ -6,9 +6,9 @@
     mode: "svg", shape: "card", scene: "mesh",
     w: 340, h: 210, radius: 30,
     frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0,
-    lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1,
-    tintOpacity: 0.08, sheen: 0.7, sheenColor: "255,255,255",
-    shadow: "0 8px 30px rgba(0,0,0,0.18)",
+    lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1, bevel: 0.6,
+    tintOpacity: 0, sheen: 0, sheenColor: "255,255,255",
+    shadow: "none",
   };
   var DEFAULT_SHADOW = "0 8px 30px rgba(0,0,0,0.18)";
 
@@ -78,7 +78,7 @@
     var o = {
       mode: state.mode, frost: state.frost, refraction: state.refraction, depth: state.depth,
       dispersion: state.dispersion, splay: state.splay, lightAngle: state.lightAngle,
-      lightIntensity: state.lightIntensity, curvature: state.curvature, convexity: state.convexity,
+      lightIntensity: state.lightIntensity, curvature: state.curvature, convexity: state.convexity, bevel: state.bevel,
       tintOpacity: state.tintOpacity, sheen: state.sheen, sheenColor: state.sheenColor, shadow: state.shadow, radius: state.radius,
     };
     if (state.mode === "svg-clone") o.background = sceneDom;
@@ -127,21 +127,30 @@
   };
 
   var FIGMA = [
-    ["frost", "Frost", 0, 30, 1, ""], ["refraction", "Refraction", 0, 200, 1, ""],
-    ["depth", "Depth", 2, 80, 1, ""], ["dispersion", "Dispersion", 0, 1, 0.02, ""],
-    ["splay", "Splay", 0, 1, 0.02, ""], ["lightAngle", "Light angle", -180, 180, 1, "°"],
-    ["lightIntensity", "Light intensity", 0, 1, 0.02, ""],
+    ["frost", "Frost", 0, 30, 1, "", "Backdrop blur behind the glass. Higher = frostier, more opaque."],
+    ["refraction", "Refraction", 0, 200, 1, "", "How strongly the edges bend the background, like a real lens."],
+    ["depth", "Depth", 2, 80, 1, "", "Width of the refracting bevel band at the edge. Lower = thinner edge."],
+    ["lightAngle", "Light angle", -180, 180, 1, "°", "Direction of the simulated light source — drives the rim light and shadow."],
+    ["lightIntensity", "Light intensity", 0, 1, 0.02, "", "Strength of the specular rim highlight / edge light."],
   ];
   var OPTICAL = [
-    ["curvature", "Curvature", 1, 6, 0.1, ""], ["convexity", "Convexity", -1, 1, 0.05, ""],
-    ["sheen", "Sheen / gloss (0 = off)", 0, 1, 0.02, ""],
-    ["tintOpacity", "Tint opacity", 0, 0.4, 0.01, ""], ["radius", "Corner radius", 0, 120, 1, ""],
+    ["bevel", "Bevel / thickness (0 = flat)", 0, 1, 0.05, "", "Directional 3D edge thickness. 1 = full beveled glass, 0 = flat pane with just a border (search-box look)."],
+    ["sheen", "Sheen / gloss (0 = off)", 0, 1, 0.02, "", "Diagonal gloss sweep across the glass face. 0 = off (the light border stays)."],
+    ["tintOpacity", "Tint opacity", 0, 0.4, 0.01, "", "Opacity of the glass color fill laid over the backdrop."],
+    ["radius", "Corner radius", 0, 120, 1, "", "Corner rounding of the glass element, in pixels."],
+  ];
+  var ADVANCED = [
+    ["dispersion", "Dispersion", 0, 1, 0.02, "", "Chromatic aberration — splits light into a prismatic RGB fringe at the edge. 0 = none (the Apple look)."],
+    ["splay", "Splay", 0, 1, 0.02, "", "Softens and widens how the bevel fades into the flat center."],
+    ["curvature", "Curvature", 1, 6, 0.1, "", "Edge profile shape: ~2 = round/spherical, ~4 = squircle (a thin, concentrated rim)."],
+    ["convexity", "Convexity", -1, 1, 0.05, "", "Lens bulge: +1 magnifies (thick), 0 flat, -1 concave (shrinks the view)."],
   ];
   function buildSliders(list, host) {
     host.innerHTML = "";
     list.forEach(function (p) {
       var k = p[0], row = document.createElement("div"); row.className = "row";
-      row.innerHTML = '<label>' + p[1] + ' <b id="v_' + k + '">' + state[k] + p[5] + '</b></label>' +
+      var tip = p[6] ? ' <span class="info" tabindex="0" role="img" aria-label="' + escapeHtml(p[6]) + '">i<span class="tip">' + escapeHtml(p[6]) + '</span></span>' : '';
+      row.innerHTML = '<label><span class="lbl">' + p[1] + tip + '</span> <b id="v_' + k + '">' + state[k] + p[5] + '</b></label>' +
         '<input id="sl_' + k + '" type="range" min="' + p[2] + '" max="' + p[3] + '" step="' + p[4] + '" value="' + state[k] + '">';
       host.appendChild(row);
       row.querySelector("input").addEventListener("input", function (e) {
@@ -159,7 +168,7 @@
     "Modal": { shape: "card", frost: 16, refraction: 40, depth: 24, dispersion: 0.1, splay: 0.5, lightAngle: -45, lightIntensity: 0.6, curvature: 2, convexity: 1, tintOpacity: 0.12 },
     "Lens": { shape: "circle", frost: 2, refraction: 160, depth: 50, dispersion: 0.6, splay: 0, lightAngle: -45, lightIntensity: 0.85, curvature: 3, convexity: 1, tintOpacity: 0.04 },
     "Magnifier": { shape: "circle", frost: 0, refraction: 120, depth: 60, dispersion: 0.25, splay: 0, lightAngle: -30, lightIntensity: 0.8, curvature: 4, convexity: 1, tintOpacity: 0.02 },
-    "Reset": Object.assign({ shape: "card" }, { frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0, lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1, tintOpacity: 0.08, shadow: "0 8px 30px rgba(0,0,0,0.18)" }),
+    "Reset": Object.assign({ shape: "card" }, { frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0, lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1, bevel: 0.6, tintOpacity: 0, sheen: 0, shadow: "none" }),
   };
   function buildPresets() {
     var host = $("#presets"); host.innerHTML = "";
@@ -171,7 +180,7 @@
   function applyPreset(p) {
     Object.keys(p).forEach(function (k) { state[k] = p[k]; });
     if (p.shape) { var s = SHAPES[p.shape]; state.w = s[0]; state.h = s[1]; state.radius = s[2]; $("#shape").value = p.shape; }
-    buildSliders(FIGMA, $("#figmaSliders")); buildSliders(OPTICAL, $("#opticalSliders"));
+    buildSliders(FIGMA, $("#figmaSliders")); buildSliders(OPTICAL, $("#opticalSliders")); buildSliders(ADVANCED, $("#advancedSliders"));
     sheenColorInput.value = rgbToHex(state.sheenColor);
     syncShadowControl();
     rebuild();
@@ -205,6 +214,7 @@
       "lightIntensity: " + num(state.lightIntensity), "curvature: " + num(state.curvature),
       "convexity: " + num(state.convexity), "tintOpacity: " + num(state.tintOpacity),
       "sheen: " + num(state.sheen), "radius: " + num(state.radius)];
+    if (state.bevel !== 1) p.push("bevel: " + num(state.bevel));
     if (state.sheenColor !== "255,255,255") p.push("sheenColor: '" + state.sheenColor + "'");
     if (state.shadow !== DEFAULT_SHADOW) p.push("shadow: '" + state.shadow + "'");
     if (needsBg()) p.push("background: '#bg'  // the element/canvas to refract");
@@ -221,7 +231,7 @@
         "frost={" + num(state.frost) + "} refraction={" + num(state.refraction) + "} depth={" + num(state.depth) + "}",
         "dispersion={" + num(state.dispersion) + "} splay={" + num(state.splay) + "}",
         "lightAngle={" + num(state.lightAngle) + "} lightIntensity={" + num(state.lightIntensity) + "}",
-        "curvature={" + num(state.curvature) + "} convexity={" + num(state.convexity) + "} tintOpacity={" + num(state.tintOpacity) + "}",
+        "curvature={" + num(state.curvature) + "} convexity={" + num(state.convexity) + "}" + (state.bevel !== 1 ? " bevel={" + num(state.bevel) + "}" : "") + " tintOpacity={" + num(state.tintOpacity) + "}",
         "sheen={" + num(state.sheen) + "}" + (state.sheenColor !== "255,255,255" ? " sheenColor=\"" + state.sheenColor + "\"" : "") +
         (state.shadow !== DEFAULT_SHADOW ? " shadow=\"" + state.shadow + "\"" : "")];
       var bg = needsBg() ? "\n      background=\"#bg\"" : "";
@@ -245,7 +255,7 @@
         "\"\n  frost=\"" + num(state.frost) + "\" refraction=\"" + num(state.refraction) + "\" depth=\"" + num(state.depth) +
         "\" dispersion=\"" + num(state.dispersion) + "\"\n  splay=\"" + num(state.splay) + "\" light-angle=\"" + num(state.lightAngle) +
         "\" light-intensity=\"" + num(state.lightIntensity) + "\"\n  curvature=\"" + num(state.curvature) + "\" convexity=\"" + num(state.convexity) +
-        "\" tint-opacity=\"" + num(state.tintOpacity) + "\" sheen=\"" + num(state.sheen) + "\"" +
+        "\"" + (state.bevel !== 1 ? " bevel=\"" + num(state.bevel) + "\"" : "") + " tint-opacity=\"" + num(state.tintOpacity) + "\" sheen=\"" + num(state.sheen) + "\"" +
         (state.sheenColor !== "255,255,255" ? " sheen-color=\"" + state.sheenColor + "\"" : "") +
         (state.shadow !== DEFAULT_SHADOW ? " shadow=\"" + state.shadow + "\"" : "") +
         " radius=\"" + num(state.radius) + "\"" + bg +
@@ -335,6 +345,7 @@
   renderScene();
   buildSliders(FIGMA, $("#figmaSliders"));
   buildSliders(OPTICAL, $("#opticalSliders"));
+  buildSliders(ADVANCED, $("#advancedSliders"));
   buildPresets();
   buildTabs();
   rebuild();

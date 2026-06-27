@@ -1,0 +1,11 @@
+import { chromium } from "playwright-core";
+const b = await chromium.launch({ channel: "chrome", headless: true });
+const p = await b.newPage({ viewport: { width: 1400, height: 1100 }, deviceScaleFactor: 2 });
+await p.goto("http://localhost:8753/index.html?v="+Date.now(), { waitUntil: "networkidle" });
+await p.waitForTimeout(400);
+const info = await p.evaluateHandle(() => { const el=document.querySelector("#sl_dispersion").closest(".row").querySelector(".info"); el.scrollIntoView({block:"center"}); return el; });
+await info.hover();
+await p.waitForTimeout(250);
+const box = await p.evaluate(() => { const r=document.querySelector("#sl_dispersion").closest(".row").getBoundingClientRect(); return {x:r.x, y:r.y}; });
+await p.screenshot({ path: "bench/tips.png", clip: { x: Math.max(0,box.x-30), y: Math.max(0,box.y-90), width: 380, height: 160 } });
+await b.close();

@@ -89,6 +89,17 @@
   .row{margin:11px 0}
   .row label{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-bottom:5px}
   .row label b{color:var(--tx);font-weight:600;font-variant-numeric:tabular-nums}
+  .row label .lbl{display:inline-flex;align-items:center;gap:6px}
+  .info{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;
+    border:1px solid var(--bd);color:var(--mut2);font:600 9px/1 var(--sans);font-style:normal;cursor:help;position:relative}
+  .info:hover,.info:focus{color:var(--acc);border-color:var(--acc);outline:none}
+  .info .tip{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);
+    width:200px;max-width:46vw;background:#15151d;border:1px solid var(--bd);border-radius:9px;padding:9px 11px;
+    font:400 11px/1.45 var(--sans);letter-spacing:0;text-transform:none;color:var(--tx);text-align:left;
+    opacity:0;visibility:hidden;pointer-events:none;transition:opacity .12s;z-index:30;box-shadow:0 10px 28px rgba(0,0,0,.45)}
+  .info .tip::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:#15151d}
+  .info:hover .tip,.info:focus .tip{opacity:1;visibility:visible}
   input[type=range]{width:100%;accent-color:var(--acc);height:18px}
   select{width:100%;background:var(--bg2);color:var(--tx);border:1px solid var(--bd);border-radius:9px;padding:8px;font-size:13px}
   .grp{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut2);margin:14px 0 4px;font-weight:600}
@@ -222,6 +233,8 @@
         <input id="shadowCustom" type="text" placeholder="e.g. 0 10px 40px rgba(0,0,0,.3)"
           style="width:100%;background:var(--bg2);color:var(--tx);border:1px solid var(--bd);border-radius:9px;padding:8px;font-size:13px">
       </div>
+      <div class="grp">Advanced</div>
+      <div id="advancedSliders"></div>
     </div>
   </aside>
 </main>
@@ -266,7 +279,7 @@
   · <a href="https://www.npmjs.com/package/glasskit-js">npm</a>
 </footer>
 
-<script src="./liquid-glass.js?v=5"></script>
-<script src="./app.js?v=5"></script>
+<script src="./liquid-glass.js?v=8"></script>
+<script src="./app.js?v=8"></script>
 </body>
 </html>

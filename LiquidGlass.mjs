@@ -18,7 +18,7 @@ import LG from "./liquid-glass.js";
 
 const GLASS_KEYS = [
   "mode", "frost", "refraction", "depth", "dispersion", "splay",
-  "lightAngle", "lightIntensity", "curvature", "convexity",
+  "lightAngle", "lightIntensity", "curvature", "convexity", "bevel",
   "tint", "tintOpacity", "sheen", "sheenColor", "saturate", "brightness", "shadow", "radius", "background",
 ];
 
