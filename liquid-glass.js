@@ -40,7 +40,8 @@
     tint: '255,255,255',  // "r,g,b"
     tintOpacity: 0.08,
     sheen: 0.7,           // diagonal gloss over the card FACE (0 = remove; border stays)
-    sheenColor: '255,255,255', // "r,g,b" — recolor the gloss
+    sheenColor: '255,255,255', // "r,g,b" or any CSS color — recolor the gloss
+    sheenAngle: null,     // gloss direction (deg); null = follow lightAngle
     saturate: 1.4,
     brightness: 1.04,
     shadow: '0 8px 30px rgba(0,0,0,0.18)', // outer drop shadow; 'none'/'' removes it, or pass any CSS box-shadow
@@ -82,6 +83,23 @@
     if (/gradient\(/i.test(t)) { var g = safeGradient(t); if (g) return g; }
     var c = safeColor(t); if (c) return c;
     return 'rgba(255,255,255,' + num(o.tintOpacity, 0.08) + ')';
+  }
+  // gloss gradient stops [bright, mid-transparent, dim], accepting a bare "r,g,b"
+  // triplet OR any CSS color (rgb/rgba/hsl/hex/named). `sh` scales the opacity.
+  function sheenStops(o, sh) {
+    var raw = typeof o.sheenColor === 'string' ? o.sheenColor.trim() : '';
+    var a0 = (0.6 * sh).toFixed(3), a1 = (0.14 * sh).toFixed(3);
+    if (/^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}$/.test(raw)) {
+      var t = raw.replace(/\s+/g, '');
+      return ['rgba(' + t + ',' + a0 + ')', 'rgba(' + t + ',0)', 'rgba(' + t + ',' + a1 + ')'];
+    }
+    var c = safeColor(raw);
+    if (c) return [
+      'color-mix(in srgb,' + c + ' ' + (60 * sh).toFixed(1) + '%,transparent)',
+      'transparent',
+      'color-mix(in srgb,' + c + ' ' + (14 * sh).toFixed(1) + '%,transparent)'
+    ];
+    return ['rgba(255,255,255,' + a0 + ')', 'rgba(255,255,255,0)', 'rgba(255,255,255,' + a1 + ')'];
   }
   function resolveEl(x) { return typeof x === 'string' ? document.querySelector(x) : x; }
   function readRadius(el) { return parseFloat(getComputedStyle(el).borderRadius) || 0; }
@@ -278,11 +296,13 @@
     function applyOverlay() {
       var li = num(o.lightIntensity, 0.8), a = (num(o.lightAngle, -45) + 90) * Math.PI / 180;
       var tintBg = tintValue(o);
-      // FACE gloss — controlled by `sheen`/`sheenColor`, independent of the border light below
-      var sc = safeRGB(o.sheenColor), sh = num(o.sheen, 0.7);
+      // FACE gloss — controlled by `sheen`/`sheenColor`/`sheenAngle`, independent of the border light below
+      var sh = num(o.sheen, 0.7);
+      var sAng = o.sheenAngle == null ? (num(o.lightAngle, -45) + 90) : num(o.sheenAngle, 45);
+      var st = sheenStops(o, sh);
       var sheenBg = sh <= 0 ? '' :
-        'linear-gradient(' + (num(o.lightAngle, -45) + 90) + 'deg,rgba(' + sc + ',' + (0.6 * sh).toFixed(3) +
-        ') 0%,rgba(' + sc + ',0) 30%,rgba(' + sc + ',0) 70%,rgba(' + sc + ',' + (0.14 * sh).toFixed(3) + ') 100%)';
+        'linear-gradient(' + sAng.toFixed(1) + 'deg,' + st[0] + ' 0%,' + st[1] +
+        ' 30%,' + st[1] + ' 70%,' + st[2] + ' 100%)';
       if (mode === 'css' || mode === 'svg') {
         // the element itself is the glass: tint goes on its background, sheen on the overlay above
         el.style.background = tintBg;
@@ -444,7 +464,7 @@
   /* ===================== <glass-kit> web component ===================== */
   var ATTRS = ['mode', 'frost', 'refraction', 'depth', 'dispersion', 'splay', 'light-angle',
     'light-intensity', 'curvature', 'convexity', 'bevel', 'tint', 'tint-opacity', 'sheen', 'sheen-color',
-    'shadow', 'radius', 'background'];
+    'sheen-angle', 'shadow', 'radius', 'background'];
   function camel(s) { return s.replace(/-([a-z])/g, function (_, c) { return c.toUpperCase(); }); }
   function defineElement() {
     if (typeof customElements === 'undefined' || customElements.get('glass-kit')) return;
@@ -471,5 +491,5 @@
   }
   if (typeof window !== 'undefined') { if (document.readyState !== 'loading') defineElement(); else document.addEventListener('DOMContentLoaded', defineElement); }
 
-  return { apply: apply, defineElement: defineElement, isChromium: isChromium, pickMode: pickMode, DEFAULTS: DEFAULTS, version: '1.2.1' };
+  return { apply: apply, defineElement: defineElement, isChromium: isChromium, pickMode: pickMode, DEFAULTS: DEFAULTS, version: '1.3.0' };
 });

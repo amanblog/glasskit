@@ -39,8 +39,10 @@ export interface LiquidGlassOptions {
   tintOpacity?: number;
   /** Diagonal gloss over the card face, 0..1 (0 removes it; the light border stays). @default 0.7 */
   sheen?: number;
-  /** Gloss color as "r,g,b". @default "255,255,255" */
+  /** Gloss color. Accepts "r,g,b" or any CSS color (`rgb()`/`rgba()`/`hsl()`/hex/named — its own alpha respected). @default "255,255,255" */
   sheenColor?: string;
+  /** Gloss direction in degrees (CSS linear-gradient angle). `null` follows `lightAngle`. @default null */
+  sheenAngle?: number | null;
   /** Backdrop saturation (css mode). @default 1.4 */
   saturate?: number;
   /** Backdrop brightness (css mode). @default 1.04 */
