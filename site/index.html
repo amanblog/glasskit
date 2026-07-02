@@ -36,7 +36,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Lexend:wght@100..900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap"
       rel="stylesheet"
     />
     <style>
@@ -60,7 +60,6 @@
         --header-h: 60px;
         --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
         --sans: "Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
       }
       * {
         box-sizing: border-box;
@@ -420,17 +419,17 @@
         font-weight: 500;
       }
       .hero h1 {
-        font-family: var(--serif);
-        font-weight: 400;
-        font-size: clamp(46px, 7.2vw, 96px);
-        line-height: 1.02;
-        letter-spacing: -0.015em;
+        font-weight: 500;
+        font-size: clamp(40px, 6.2vw, 82px);
+        line-height: 1.04;
+        letter-spacing: -0.035em;
         margin: 0 0 20px;
         text-wrap: balance;
       }
       .hero h1 em {
-        font-style: italic;
-        color: #ccd7fb;
+        font-style: normal;
+        font-weight: 300;
+        color: #b9c9f5;
       }
       .hero .sub {
         max-width: 56ch;
@@ -557,17 +556,17 @@
         margin-bottom: 34px;
       }
       .secHead h2 {
-        font-family: var(--serif);
-        font-weight: 400;
-        font-size: clamp(30px, 3.6vw, 46px);
-        letter-spacing: -0.01em;
-        line-height: 1.06;
+        font-weight: 500;
+        font-size: clamp(26px, 3.1vw, 40px);
+        letter-spacing: -0.03em;
+        line-height: 1.08;
         margin: 0 0 10px;
         text-wrap: balance;
       }
       .secHead h2 em {
-        font-style: italic;
-        color: #ccd7fb;
+        font-style: normal;
+        font-weight: 300;
+        color: #b9c9f5;
       }
       .secHead p {
         margin: 0;
@@ -997,10 +996,12 @@
         border-bottom: 1px solid var(--bd2);
       }
       .stepRow .n {
-        font-family: var(--serif);
-        font-size: 44px;
+        font-weight: 200;
+        font-size: 40px;
         line-height: 1;
+        letter-spacing: -0.02em;
         color: #7d90cc;
+        font-variant-numeric: tabular-nums;
       }
       .stepRow h3 {
         margin: 0 0 4px;
