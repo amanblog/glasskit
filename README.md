@@ -72,10 +72,11 @@ It refracts DOM, not `<canvas>` pixels — use `webgl` for canvas/video backgrou
 | Refraction | `refraction` | | convex↔concave | `convexity` |
 | Depth | `depth` | | tint | `tint`, `tintOpacity` |
 | Dispersion | `dispersion` | | corner radius | `radius` |
-| Splay | `splay` | | | |
+| Splay | `splay` | | face gloss | `sheen`, `sheenColor`, `sheenAngle` |
 | Light (angle / %) | `lightAngle` / `lightIntensity` | | drop shadow | `shadow` |
 
 - **`tint`** takes either `"r,g,b"` (paired with `tintOpacity`) **or a full CSS gradient** — `tint="linear-gradient(180deg, rgba(255,255,255,.2), rgba(19,19,19,.22))"`.
+- **`sheen`** is the diagonal face gloss (`0` = off). **`sheenColor`** takes `"r,g,b"` **or any CSS color** (`rgb()`/`rgba()`/`hsl()`/hex/named). **`sheenAngle`** rotates the gloss in degrees; omit it (or `null`) to follow `lightAngle`.
 - **`radius`** sets `border-radius` on the element *and* the refraction map — `radius={999}` alone gives you a pill; no need to also set it in `style`.
 - **`shadow`** is any CSS `box-shadow` (`"none"` removes it); the inner light border/bezel follow `lightIntensity`.
 
