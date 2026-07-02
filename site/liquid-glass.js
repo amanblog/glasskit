@@ -40,7 +40,8 @@
     tint: '255,255,255',  // "r,g,b"
     tintOpacity: 0.08,
     sheen: 0.7,           // diagonal gloss over the card FACE (0 = remove; border stays)
-    sheenColor: '255,255,255', // "r,g,b" — recolor the gloss
+    sheenColor: '255,255,255', // "r,g,b" or any CSS color — recolor the gloss
+    sheenAngle: null,     // gloss direction (deg); null = follow lightAngle
     saturate: 1.4,
     brightness: 1.04,
     shadow: '0 8px 30px rgba(0,0,0,0.18)', // outer drop shadow; 'none'/'' removes it, or pass any CSS box-shadow
@@ -83,6 +84,23 @@
     var c = safeColor(t); if (c) return c;
     return 'rgba(255,255,255,' + num(o.tintOpacity, 0.08) + ')';
   }
+  // gloss gradient stops [bright, mid-transparent, dim], accepting a bare "r,g,b"
+  // triplet OR any CSS color (rgb/rgba/hsl/hex/named). `sh` scales the opacity.
+  function sheenStops(o, sh) {
+    var raw = typeof o.sheenColor === 'string' ? o.sheenColor.trim() : '';
+    var a0 = (0.6 * sh).toFixed(3), a1 = (0.14 * sh).toFixed(3);
+    if (/^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}$/.test(raw)) {
+      var t = raw.replace(/\s+/g, '');
+      return ['rgba(' + t + ',' + a0 + ')', 'rgba(' + t + ',0)', 'rgba(' + t + ',' + a1 + ')'];
+    }
+    var c = safeColor(raw);
+    if (c) return [
+      'color-mix(in srgb,' + c + ' ' + (60 * sh).toFixed(1) + '%,transparent)',
+      'transparent',
+      'color-mix(in srgb,' + c + ' ' + (14 * sh).toFixed(1) + '%,transparent)'
+    ];
+    return ['rgba(255,255,255,' + a0 + ')', 'rgba(255,255,255,0)', 'rgba(255,255,255,' + a1 + ')'];
+  }
   function resolveEl(x) { return typeof x === 'string' ? document.querySelector(x) : x; }
   function readRadius(el) { return parseFloat(getComputedStyle(el).borderRadius) || 0; }
   function ns(tag) { return document.createElementNS('http://www.w3.org/2000/svg', tag); }
@@ -100,29 +118,75 @@
     return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
   }
 
-  /* displacement map: R = x-shift, G = y-shift, 128 = neutral */
+  /* displacement map: R = x-shift, G = y-shift, 128 = neutral.
+   * Only the bezel band displaces anything, so the map is built ring-only:
+   *  - the SDF field is evaluated once per cell (the naive version cost 5 sdf() per pixel);
+   *  - the interior is prefilled neutral and skipped — the rounded border lies at most
+   *    r·(√2−1) inside the straight edges, so any pixel deeper than bezel + 0.415·r
+   *    from every edge is provably neutral;
+   *  - identical (size, params) maps are served from a small LRU (repeated buttons/cards). */
+  var NEUTRAL = (function () {
+    var u8 = new Uint8Array(4); u8[0] = u8[1] = u8[2] = 128; u8[3] = 255;
+    return new Uint32Array(u8.buffer)[0];
+  })();
+  var MAP_CACHE = typeof Map !== 'undefined' ? new Map() : null;
+  var MAP_CACHE_MAX = 24;
+
   function buildMap(w, h, radius, bezel, splay, curvature, convexity) {
     w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
+    var key = w + '|' + h + '|' + radius + '|' + bezel + '|' + splay + '|' + curvature + '|' + convexity;
+    if (MAP_CACHE) {
+      var hit = MAP_CACHE.get(key);
+      if (hit) { MAP_CACHE.delete(key); MAP_CACHE.set(key, hit); return hit; }
+    }
     var cvs = document.createElement('canvas'); cvs.width = w; cvs.height = h;
     var ctx = cvs.getContext('2d');
     var img = ctx.createImageData(w, h), data = img.data;
     var hw = w / 2, hh = h / 2, r = Math.min(radius, hw, hh), b = Math.max(1, bezel);
     var exp = Math.max(0.3, curvature * (1 - 0.5 * splay));
+
+    new Uint32Array(data.buffer).fill(NEUTRAL);
+
+    var band = Math.ceil(b + 0.4142 * r) + 2;   // conservative bezel-band bound (+2 safety)
+
+    // SDF field, one evaluation per cell, with a 1px apron for the centred gradients.
+    // Deep-interior cells are never read (their pixels stay neutral) so they're not computed.
+    var fw = w + 2, F = new Float64Array(fw * (h + 2));
+    var fullFieldX = (w <= 2 * (band + 2));
+    for (var fy = -1; fy <= h; fy++) {
+      var yc = fy + 0.5, rowOff = (fy + 1) * fw + 1, fx;
+      if (fullFieldX || Math.min(yc, h - yc) <= band + 1) {
+        for (fx = -1; fx <= w; fx++) F[rowOff + fx] = sdf(fx + 0.5, yc, hw, hh, r);
+      } else {
+        for (fx = -1; fx <= band; fx++) F[rowOff + fx] = sdf(fx + 0.5, yc, hw, hh, r);
+        for (fx = w - band - 1; fx <= w; fx++) F[rowOff + fx] = sdf(fx + 0.5, yc, hw, hh, r);
+      }
+    }
+
+    var fullRowX = (w <= 2 * band);
     for (var y = 0; y < h; y++) {
+      var rowC = (y + 1) * fw + 1, rowU = y * fw + 1, rowD = (y + 2) * fw + 1;
+      var edgeRow = fullRowX || Math.min(y + 0.5, h - y - 0.5) <= band;
       for (var x = 0; x < w; x++) {
-        var d = sdf(x + 0.5, y + 0.5, hw, hh, r);
-        var nx = sdf(x + 1.5, y + 0.5, hw, hh, r) - sdf(x - 0.5, y + 0.5, hw, hh, r);
-        var nyv = sdf(x + 0.5, y + 1.5, hw, hh, r) - sdf(x + 0.5, y - 0.5, hw, hh, r);
-        var nl = Math.hypot(nx, nyv) || 1, m = 0;
+        if (!edgeRow && x === band) x = w - band;   // hop the provably-neutral interior
+        var d = F[rowC + x], m = 0;
         if (d < 0 && d > -b) { var t = -d / b; m = Math.pow(1 - t, exp) * convexity; }
+        if (m === 0) continue;                      // prefilled neutral
+        var nx = F[rowC + x + 1] - F[rowC + x - 1];
+        var nyv = F[rowD + x] - F[rowU + x];
+        var nl = Math.hypot(nx, nyv) || 1;
         var i = (y * w + x) * 4;
         data[i] = clamp8(128 - (nx / nl) * m * 127);
         data[i + 1] = clamp8(128 - (nyv / nl) * m * 127);
-        data[i + 2] = 128; data[i + 3] = 255;
       }
     }
     ctx.putImageData(img, 0, 0);
-    return cvs.toDataURL();
+    var url = cvs.toDataURL();
+    if (MAP_CACHE) {
+      MAP_CACHE.set(key, url);
+      if (MAP_CACHE.size > MAP_CACHE_MAX) MAP_CACHE.delete(MAP_CACHE.keys().next().value);
+    }
+    return url;
   }
 
   /* ============================ instance ============================ */
@@ -278,11 +342,13 @@
     function applyOverlay() {
       var li = num(o.lightIntensity, 0.8), a = (num(o.lightAngle, -45) + 90) * Math.PI / 180;
       var tintBg = tintValue(o);
-      // FACE gloss — controlled by `sheen`/`sheenColor`, independent of the border light below
-      var sc = safeRGB(o.sheenColor), sh = num(o.sheen, 0.7);
+      // FACE gloss — controlled by `sheen`/`sheenColor`/`sheenAngle`, independent of the border light below
+      var sh = num(o.sheen, 0.7);
+      var sAng = o.sheenAngle == null ? (num(o.lightAngle, -45) + 90) : num(o.sheenAngle, 45);
+      var st = sheenStops(o, sh);
       var sheenBg = sh <= 0 ? '' :
-        'linear-gradient(' + (num(o.lightAngle, -45) + 90) + 'deg,rgba(' + sc + ',' + (0.6 * sh).toFixed(3) +
-        ') 0%,rgba(' + sc + ',0) 30%,rgba(' + sc + ',0) 70%,rgba(' + sc + ',' + (0.14 * sh).toFixed(3) + ') 100%)';
+        'linear-gradient(' + sAng.toFixed(1) + 'deg,' + st[0] + ' 0%,' + st[1] +
+        ' 30%,' + st[1] + ' 70%,' + st[2] + ' 100%)';
       if (mode === 'css' || mode === 'svg') {
         // the element itself is the glass: tint goes on its background, sheen on the overlay above
         el.style.background = tintBg;
@@ -444,7 +510,7 @@
   /* ===================== <glass-kit> web component ===================== */
   var ATTRS = ['mode', 'frost', 'refraction', 'depth', 'dispersion', 'splay', 'light-angle',
     'light-intensity', 'curvature', 'convexity', 'bevel', 'tint', 'tint-opacity', 'sheen', 'sheen-color',
-    'shadow', 'radius', 'background'];
+    'sheen-angle', 'shadow', 'radius', 'background'];
   function camel(s) { return s.replace(/-([a-z])/g, function (_, c) { return c.toUpperCase(); }); }
   function defineElement() {
     if (typeof customElements === 'undefined' || customElements.get('glass-kit')) return;
@@ -471,5 +537,5 @@
   }
   if (typeof window !== 'undefined') { if (document.readyState !== 'loading') defineElement(); else document.addEventListener('DOMContentLoaded', defineElement); }
 
-  return { apply: apply, defineElement: defineElement, isChromium: isChromium, pickMode: pickMode, DEFAULTS: DEFAULTS, version: '1.2.1' };
+  return { apply: apply, defineElement: defineElement, isChromium: isChromium, pickMode: pickMode, DEFAULTS: DEFAULTS, version: '1.3.0' };
 });

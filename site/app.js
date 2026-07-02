@@ -7,7 +7,7 @@
     w: 340, h: 210, radius: 30,
     frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0,
     lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1, bevel: 0.6,
-    tintOpacity: 0, tint: "255,255,255", sheen: 0, sheenColor: "255,255,255",
+    tintOpacity: 0, tint: "255,255,255", sheen: 0, sheenColor: "255,255,255", sheenAngle: null,
     shadow: "none",
   };
   var DEFAULT_SHADOW = "0 8px 30px rgba(0,0,0,0.18)";
@@ -81,6 +81,7 @@
       lightIntensity: state.lightIntensity, curvature: state.curvature, convexity: state.convexity, bevel: state.bevel,
       tintOpacity: state.tintOpacity, tint: state.tint, sheen: state.sheen, sheenColor: state.sheenColor, shadow: state.shadow, radius: state.radius,
     };
+    if (state.sheenAngle != null) o.sheenAngle = state.sheenAngle;
     if (state.mode === "svg-clone") o.background = sceneDom;
     if (state.mode === "webgl") o.background = sceneCanvas;
     return o;
@@ -136,6 +137,7 @@
   var OPTICAL = [
     ["bevel", "Bevel / thickness (0 = flat)", 0, 1, 0.05, "", "Directional 3D edge thickness. 1 = full beveled glass, 0 = flat pane with just a border (search-box look)."],
     ["sheen", "Sheen / gloss (0 = off)", 0, 1, 0.02, "", "Diagonal gloss sweep across the glass face. 0 = off (the light border stays)."],
+    ["sheenAngle", "Sheen angle", -180, 180, 5, "°", "Direction of the gloss sweep across the face. Defaults to follow the light angle."],
     ["tintOpacity", "Tint opacity", 0, 0.4, 0.01, "", "Opacity of the glass color fill laid over the backdrop."],
     ["radius", "Corner radius", 0, 120, 1, "", "Corner rounding of the glass element, in pixels."],
   ];
@@ -149,9 +151,10 @@
     host.innerHTML = "";
     list.forEach(function (p) {
       var k = p[0], row = document.createElement("div"); row.className = "row";
+      var cur = state[k] == null && k === "sheenAngle" ? (state.lightAngle + 90) : state[k];
       var tip = p[6] ? ' <span class="info" tabindex="0" role="img" aria-label="' + escapeHtml(p[6]) + '">i<span class="tip">' + escapeHtml(p[6]) + '</span></span>' : '';
-      row.innerHTML = '<label><span class="lbl">' + p[1] + tip + '</span> <b id="v_' + k + '">' + state[k] + p[5] + '</b></label>' +
-        '<input id="sl_' + k + '" type="range" min="' + p[2] + '" max="' + p[3] + '" step="' + p[4] + '" value="' + state[k] + '">';
+      row.innerHTML = '<label><span class="lbl">' + p[1] + tip + '</span> <b id="v_' + k + '">' + cur + p[5] + '</b></label>' +
+        '<input id="sl_' + k + '" type="range" min="' + p[2] + '" max="' + p[3] + '" step="' + p[4] + '" value="' + cur + '">';
       host.appendChild(row);
       row.querySelector("input").addEventListener("input", function (e) {
         state[k] = parseFloat(e.target.value);
@@ -168,7 +171,7 @@
     "Modal": { shape: "card", frost: 16, refraction: 40, depth: 24, dispersion: 0.1, splay: 0.5, lightAngle: -45, lightIntensity: 0.6, curvature: 2, convexity: 1, tintOpacity: 0.12 },
     "Lens": { shape: "circle", frost: 2, refraction: 160, depth: 50, dispersion: 0.6, splay: 0, lightAngle: -45, lightIntensity: 0.85, curvature: 3, convexity: 1, tintOpacity: 0.04 },
     "Magnifier": { shape: "circle", frost: 0, refraction: 120, depth: 60, dispersion: 0.25, splay: 0, lightAngle: -30, lightIntensity: 0.8, curvature: 4, convexity: 1, tintOpacity: 0.02 },
-    "Reset": Object.assign({ shape: "card" }, { frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0, lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1, bevel: 0.6, tintOpacity: 0, tint: "255,255,255", sheen: 0, shadow: "none" }),
+    "Reset": Object.assign({ shape: "card" }, { frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0, lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1, bevel: 0.6, tintOpacity: 0, tint: "255,255,255", sheen: 0, sheenAngle: null, shadow: "none" }),
   };
   function buildPresets() {
     var host = $("#presets"); host.innerHTML = "";
@@ -218,6 +221,7 @@
     if (state.bevel !== 1) p.push("bevel: " + num(state.bevel));
     if (state.tint !== "255,255,255") p.push("tint: '" + state.tint + "'");
     if (state.sheenColor !== "255,255,255") p.push("sheenColor: '" + state.sheenColor + "'");
+    if (state.sheenAngle != null) p.push("sheenAngle: " + num(state.sheenAngle));
     if (state.shadow !== DEFAULT_SHADOW) p.push("shadow: '" + state.shadow + "'");
     if (needsBg()) p.push("background: '#bg'  // the element/canvas to refract");
     return indent + p.join(",\n" + indent);
@@ -235,6 +239,7 @@
         "lightAngle={" + num(state.lightAngle) + "} lightIntensity={" + num(state.lightIntensity) + "}",
         "curvature={" + num(state.curvature) + "} convexity={" + num(state.convexity) + "}" + (state.bevel !== 1 ? " bevel={" + num(state.bevel) + "}" : "") + " tintOpacity={" + num(state.tintOpacity) + "}",
         "sheen={" + num(state.sheen) + "}" + (state.tint !== "255,255,255" ? " tint=\"" + state.tint + "\"" : "") + (state.sheenColor !== "255,255,255" ? " sheenColor=\"" + state.sheenColor + "\"" : "") +
+        (state.sheenAngle != null ? " sheenAngle={" + num(state.sheenAngle) + "}" : "") +
         (state.shadow !== DEFAULT_SHADOW ? " shadow=\"" + state.shadow + "\"" : "")];
       var bg = needsBg() ? "\n      background=\"#bg\"" : "";
       return "// npm i glasskit-js\nimport Glass from 'glasskit-js/react';\n\nexport default function Demo() {\n  return (\n    <Glass\n      " +
@@ -259,6 +264,7 @@
         "\" light-intensity=\"" + num(state.lightIntensity) + "\"\n  curvature=\"" + num(state.curvature) + "\" convexity=\"" + num(state.convexity) +
         "\"" + (state.bevel !== 1 ? " bevel=\"" + num(state.bevel) + "\"" : "") + (state.tint !== "255,255,255" ? " tint=\"" + state.tint + "\"" : "") + " tint-opacity=\"" + num(state.tintOpacity) + "\" sheen=\"" + num(state.sheen) + "\"" +
         (state.sheenColor !== "255,255,255" ? " sheen-color=\"" + state.sheenColor + "\"" : "") +
+        (state.sheenAngle != null ? " sheen-angle=\"" + num(state.sheenAngle) + "\"" : "") +
         (state.shadow !== DEFAULT_SHADOW ? " shadow=\"" + state.shadow + "\"" : "") +
         " radius=\"" + num(state.radius) + "\"" + bg +
         "\n  style=\"" + styleStr() + ";display:flex;align-items:flex-end;padding:20px;color:#fff\">\n  Liquid Glass\n</glass-kit>";

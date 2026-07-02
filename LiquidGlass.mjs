@@ -19,7 +19,7 @@ import LG from "./liquid-glass.js";
 const GLASS_KEYS = [
   "mode", "frost", "refraction", "depth", "dispersion", "splay",
   "lightAngle", "lightIntensity", "curvature", "convexity", "bevel",
-  "tint", "tintOpacity", "sheen", "sheenColor", "saturate", "brightness", "shadow", "radius", "background",
+  "tint", "tintOpacity", "sheen", "sheenColor", "sheenAngle", "saturate", "brightness", "shadow", "radius", "background",
 ];
 
 const LiquidGlass = React.forwardRef(function LiquidGlass({ as: Tag = "div", children, ...props }, forwardedRef) {
