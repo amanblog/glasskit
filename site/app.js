@@ -3,7 +3,7 @@
   "use strict";
 
   var state = {
-    mode: "svg", shape: "card", scene: "mesh",
+    mode: "webgl", shape: "card", scene: "mesh",
     w: 340, h: 210, radius: 30,
     frost: 6, refraction: 90, depth: 22, dispersion: 0.4, splay: 0,
     lightAngle: -45, lightIntensity: 0.8, curvature: 2.2, convexity: 1, bevel: 0.6,
@@ -86,10 +86,37 @@
     if (state.mode === "webgl") o.background = sceneCanvas;
     return o;
   }
+  /* mobile: the stage is a pinned mini-preview — size it to the shape and
+     keep the glass inside the visible area (fully when it fits, centred when not) */
+  var stageEl = $("#stage");
+  function isNarrow() { return window.matchMedia("(max-width: 980px)").matches; }
+  function fitStage() {
+    var prev = stageEl.style.height;
+    stageEl.style.height = isNarrow()
+      ? Math.min(Math.max(260, state.h + 80), Math.round(window.innerHeight * 0.45)) + "px"
+      : "";
+    if (prev !== stageEl.style.height && state.mode === "webgl") paintCanvasScene();
+    clampGlass();
+  }
+  function clampGlass() {
+    var rw = stageEl.clientWidth, rh = stageEl.clientHeight;
+    if (!rw || !rh) return;
+    var w = glass.offsetWidth || state.w, h = glass.offsetHeight || state.h;
+    var cs = getComputedStyle(glass);
+    var l = parseFloat(glass.style.left) || parseFloat(cs.left) || 0;
+    var t = parseFloat(glass.style.top) || parseFloat(cs.top) || 0;
+    var nl = w + 16 <= rw ? Math.min(Math.max(l, 8), rw - w - 8) : (rw - w) / 2;
+    var nt = h + 16 <= rh ? Math.min(Math.max(t, 8), rh - h - 8) : (rh - h) / 2;
+    if (nl !== l) glass.style.left = nl + "px";
+    if (nt !== t) glass.style.top = nt + "px";
+  }
+  window.addEventListener("resize", fitStage);
+
   function rebuild() {
     if (inst) inst.destroy();
     glass.style.width = state.w + "px"; glass.style.height = state.h + "px";
     glass.style.borderRadius = (state.shape === "circle" ? "50%" : state.radius + "px");
+    fitStage();
     inst = Glasskit.apply(glass, glassOpts());
     showResolved(); buildCode();
   }
@@ -203,7 +230,12 @@
       oy = parseFloat(glass.style.top) || parseFloat(cs.top) || 0;
     });
     glass.addEventListener("pointermove", function (e) {
-      if (!down) return; glass.style.left = (ox + e.clientX - sx) + "px"; glass.style.top = (oy + e.clientY - sy) + "px";
+      if (!down) return;
+      // keep at least 60px of the glass on-stage so it can't be lost off-screen
+      var VIS = 60, w = glass.offsetWidth, h = glass.offsetHeight;
+      var rw = stageEl.clientWidth, rh = stageEl.clientHeight;
+      glass.style.left = Math.min(Math.max(ox + e.clientX - sx, VIS - w), rw - VIS) + "px";
+      glass.style.top = Math.min(Math.max(oy + e.clientY - sy, VIS - h), rh - VIS) + "px";
     });
     glass.addEventListener("pointerup", function () { down = false; glass.classList.remove("drag"); });
   })();

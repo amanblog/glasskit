@@ -585,11 +585,16 @@
         main {
           grid-template-columns: 1fr;
         }
-        .stageWrap {
-          position: static;
-          height: auto;
-          min-height: 420px;
+        /* pinned mini-preview: controls scroll beneath, the glass stays visible
+           (main .stageWrap out-specifies the base rule below regardless of order) */
+        main .stageWrap {
+          position: sticky;
+          top: calc(var(--header-h) + 8px);
+          z-index: 40;
+          height: 300px;
+          min-height: 0;
           max-height: none;
+          box-shadow: 0 18px 44px rgba(2, 6, 24, 0.6);
         }
       }
       .stageWrap {
@@ -671,6 +676,7 @@
       }
       #glass {
         position: absolute;
+        touch-action: none; /* touch drags move the glass, not the page */
         left: 140px;
         top: 170px;
         width: 340px;
@@ -1242,9 +1248,9 @@
             <div class="seg" id="modeSeg">
               <button data-m="auto">Auto</button>
               <button data-m="css">CSS</button>
-              <button data-m="svg" class="on">SVG</button>
+              <button data-m="svg">SVG</button>
               <button data-m="svg-clone">Clone</button>
-              <button data-m="webgl">WebGL</button>
+              <button data-m="webgl" class="on">WebGL</button>
             </div>
             <div class="modeNote" id="modeNote"></div>
           </div>
