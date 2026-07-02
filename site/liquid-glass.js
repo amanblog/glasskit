@@ -100,29 +100,75 @@
     return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
   }
 
-  /* displacement map: R = x-shift, G = y-shift, 128 = neutral */
+  /* displacement map: R = x-shift, G = y-shift, 128 = neutral.
+   * Only the bezel band displaces anything, so the map is built ring-only:
+   *  - the SDF field is evaluated once per cell (the naive version cost 5 sdf() per pixel);
+   *  - the interior is prefilled neutral and skipped — the rounded border lies at most
+   *    r·(√2−1) inside the straight edges, so any pixel deeper than bezel + 0.415·r
+   *    from every edge is provably neutral;
+   *  - identical (size, params) maps are served from a small LRU (repeated buttons/cards). */
+  var NEUTRAL = (function () {
+    var u8 = new Uint8Array(4); u8[0] = u8[1] = u8[2] = 128; u8[3] = 255;
+    return new Uint32Array(u8.buffer)[0];
+  })();
+  var MAP_CACHE = typeof Map !== 'undefined' ? new Map() : null;
+  var MAP_CACHE_MAX = 24;
+
   function buildMap(w, h, radius, bezel, splay, curvature, convexity) {
     w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
+    var key = w + '|' + h + '|' + radius + '|' + bezel + '|' + splay + '|' + curvature + '|' + convexity;
+    if (MAP_CACHE) {
+      var hit = MAP_CACHE.get(key);
+      if (hit) { MAP_CACHE.delete(key); MAP_CACHE.set(key, hit); return hit; }
+    }
     var cvs = document.createElement('canvas'); cvs.width = w; cvs.height = h;
     var ctx = cvs.getContext('2d');
     var img = ctx.createImageData(w, h), data = img.data;
     var hw = w / 2, hh = h / 2, r = Math.min(radius, hw, hh), b = Math.max(1, bezel);
     var exp = Math.max(0.3, curvature * (1 - 0.5 * splay));
+
+    new Uint32Array(data.buffer).fill(NEUTRAL);
+
+    var band = Math.ceil(b + 0.4142 * r) + 2;   // conservative bezel-band bound (+2 safety)
+
+    // SDF field, one evaluation per cell, with a 1px apron for the centred gradients.
+    // Deep-interior cells are never read (their pixels stay neutral) so they're not computed.
+    var fw = w + 2, F = new Float64Array(fw * (h + 2));
+    var fullFieldX = (w <= 2 * (band + 2));
+    for (var fy = -1; fy <= h; fy++) {
+      var yc = fy + 0.5, rowOff = (fy + 1) * fw + 1, fx;
+      if (fullFieldX || Math.min(yc, h - yc) <= band + 1) {
+        for (fx = -1; fx <= w; fx++) F[rowOff + fx] = sdf(fx + 0.5, yc, hw, hh, r);
+      } else {
+        for (fx = -1; fx <= band; fx++) F[rowOff + fx] = sdf(fx + 0.5, yc, hw, hh, r);
+        for (fx = w - band - 1; fx <= w; fx++) F[rowOff + fx] = sdf(fx + 0.5, yc, hw, hh, r);
+      }
+    }
+
+    var fullRowX = (w <= 2 * band);
     for (var y = 0; y < h; y++) {
+      var rowC = (y + 1) * fw + 1, rowU = y * fw + 1, rowD = (y + 2) * fw + 1;
+      var edgeRow = fullRowX || Math.min(y + 0.5, h - y - 0.5) <= band;
       for (var x = 0; x < w; x++) {
-        var d = sdf(x + 0.5, y + 0.5, hw, hh, r);
-        var nx = sdf(x + 1.5, y + 0.5, hw, hh, r) - sdf(x - 0.5, y + 0.5, hw, hh, r);
-        var nyv = sdf(x + 0.5, y + 1.5, hw, hh, r) - sdf(x + 0.5, y - 0.5, hw, hh, r);
-        var nl = Math.hypot(nx, nyv) || 1, m = 0;
+        if (!edgeRow && x === band) x = w - band;   // hop the provably-neutral interior
+        var d = F[rowC + x], m = 0;
         if (d < 0 && d > -b) { var t = -d / b; m = Math.pow(1 - t, exp) * convexity; }
+        if (m === 0) continue;                      // prefilled neutral
+        var nx = F[rowC + x + 1] - F[rowC + x - 1];
+        var nyv = F[rowD + x] - F[rowU + x];
+        var nl = Math.hypot(nx, nyv) || 1;
         var i = (y * w + x) * 4;
         data[i] = clamp8(128 - (nx / nl) * m * 127);
         data[i + 1] = clamp8(128 - (nyv / nl) * m * 127);
-        data[i + 2] = 128; data[i + 3] = 255;
       }
     }
     ctx.putImageData(img, 0, 0);
-    return cvs.toDataURL();
+    var url = cvs.toDataURL();
+    if (MAP_CACHE) {
+      MAP_CACHE.set(key, url);
+      if (MAP_CACHE.size > MAP_CACHE_MAX) MAP_CACHE.delete(MAP_CACHE.keys().next().value);
+    }
+    return url;
   }
 
   /* ============================ instance ============================ */
