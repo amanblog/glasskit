@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Glasskit — the Liquid Glass generator (CSS · SVG · WebGL)</title>
+    <title>Glasskit — Liquid Glass for the web (CSS · SVG · WebGL)</title>
     <meta
       name="description"
       content="Tune Apple/Figma Liquid Glass visually, switch the rendering engine (CSS · SVG · clone · WebGL), and copy the code for React, Vue, vanilla, web component, CSS or Tailwind. Real refraction, cross-browser, any shape. No install."
@@ -12,10 +12,10 @@
       name="keywords"
       content="liquid glass, glassmorphism, apple liquid glass, ios 26, figma glass, css generator, backdrop-filter, refraction, feDisplacementMap, webgl glass, react, tailwind"
     />
-    <meta name="theme-color" content="#0a0a0f" />
+    <meta name="theme-color" content="#04070f" />
     <link rel="canonical" href="https://glasskit.dev/" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Glasskit — the Liquid Glass generator" />
+    <meta property="og:title" content="Glasskit — Liquid Glass for the web" />
     <meta
       property="og:description"
       content="Real Liquid Glass for the web. Switch engine (CSS · SVG · clone · WebGL), copy code for any framework, benchmark the cost. No install."
@@ -23,10 +23,7 @@
     <meta property="og:image" content="og.png" />
     <meta property="og:url" content="https://glasskit.dev/" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta
-      name="twitter:title"
-      content="Glasskit — the Liquid Glass generator"
-    />
+    <meta name="twitter:title" content="Glasskit — Liquid Glass for the web" />
     <meta
       name="twitter:description"
       content="Real Liquid Glass for the web. 4 engines, any framework, benchmarked."
@@ -34,31 +31,41 @@
     <meta name="twitter:image" content="og.png" />
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23a78bfa'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%235b7cfa'/%3E%3Crect x='7' y='7' width='18' height='18' rx='6' fill='none' stroke='white' stroke-opacity='.85' stroke-width='2'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap"
+      rel="stylesheet"
     />
     <style>
       :root {
-        --bg: #0a0a0f;
-        --bg2: #0e0e16;
-        --panel: rgba(255, 255, 255, 0.04);
-        --panel2: rgba(255, 255, 255, 0.02);
-        --bd: rgba(255, 255, 255, 0.09);
-        --bd2: rgba(255, 255, 255, 0.06);
-        --tx: #f5f5f7;
-        --mut: #9aa0ac;
-        --mut2: #6b7280;
-        --acc: #a78bfa;
-        --acc2: #7c3aed;
-        --ok: #34d399;
+        --bg: #04070f;
+        --bg2: #060b18;
+        --panel: rgba(148, 170, 255, 0.045);
+        --panel2: rgba(148, 170, 255, 0.025);
+        --bd: rgba(160, 180, 255, 0.14);
+        --bd2: rgba(160, 180, 255, 0.08);
+        --tx: #eef1fa;
+        --mut: #97a1bc;
+        --mut2: #5e6880;
+        --acc: #5b7cfa;
+        --acc-dim: rgba(91, 124, 250, 0.16);
+        --ok: #4ade80;
         --warn: #fbbf24;
-        --r: 14px;
+        --r-lg: 20px;
+        --r: 12px;
+        --r-sm: 8px;
+        --header-h: 60px;
         --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-        --sans:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
-          sans-serif;
+        --sans: "Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
       * {
         box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
       }
       html,
       body {
@@ -69,8 +76,13 @@
         color: var(--tx);
         font-family: var(--sans);
         font-size: 14px;
-        line-height: 1.5;
+        font-weight: 400;
+        line-height: 1.55;
         -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+      ::selection {
+        background: rgba(91, 124, 250, 0.35);
       }
       a {
         color: inherit;
@@ -80,42 +92,74 @@
         font-family: inherit;
         cursor: pointer;
       }
+      :focus-visible {
+        outline: 2px solid var(--acc);
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+      .skip {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        z-index: 200;
+        background: var(--acc);
+        color: #fff;
+        padding: 10px 16px;
+        border-radius: 0 0 10px 0;
+      }
+      .skip:focus {
+        left: 0;
+      }
+      /* film grain — breaks the flatness, sits above everything at 4% */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 120;
+        pointer-events: none;
+        opacity: 0.04;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
 
-      /* header */
+      /* ============================== header ============================== */
       header {
         position: sticky;
         top: 0;
-        z-index: 50;
+        z-index: 90;
         display: flex;
         align-items: center;
-        gap: 14px;
-        padding: 12px 20px;
-        background: rgba(10, 10, 15, 0.7);
+        gap: 6px;
+        height: var(--header-h);
+        padding: 0 clamp(16px, 3.4vw, 44px);
+        background: rgba(4, 7, 15, 0.55);
         backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         border-bottom: 1px solid var(--bd2);
       }
       .brand {
         display: flex;
         align-items: center;
         gap: 10px;
-        font-weight: 680;
+        font-weight: 600;
+        font-size: 15px;
         letter-spacing: -0.01em;
+        margin-right: 18px;
       }
       .logo {
-        width: 26px;
-        height: 26px;
-        border-radius: 8px;
+        width: 24px;
+        height: 24px;
+        border-radius: 7px;
         background:
-          radial-gradient(120% 120% at 30% 20%, #fff6, #fff0 40%),
-          linear-gradient(135deg, var(--acc), #22d3ee);
+          radial-gradient(120% 120% at 30% 20%, rgba(255, 255, 255, 0.5), transparent 45%),
+          linear-gradient(140deg, #6d8bff, #2947c9);
         box-shadow:
-          inset 0 0 0 1px #ffffff55,
-          0 2px 10px #7c3aed66;
+          inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+          0 2px 12px rgba(41, 71, 201, 0.5);
       }
-      .brand small {
-        color: var(--mut);
-        font-weight: 500;
-        font-size: 12px;
+      header nav {
+        display: flex;
+        align-items: center;
+        gap: 2px;
       }
       header .sp {
         flex: 1;
@@ -123,55 +167,448 @@
       .hlink {
         color: var(--mut);
         font-size: 13px;
-        padding: 7px 11px;
-        border-radius: 9px;
+        font-weight: 500;
+        padding: 7px 12px;
+        border-radius: 8px;
+        transition: color 0.18s, background 0.18s;
       }
       .hlink:hover {
         color: var(--tx);
         background: var(--panel);
       }
       .hlink.cta {
-        color: var(--tx);
-        background: var(--acc2);
+        color: #0a0f22;
+        background: #f4f6ff;
+        font-family: var(--mono);
+        font-size: 12.5px;
         font-weight: 600;
+        padding: 8px 16px;
+        border-radius: 999px;
+        box-shadow: 0 4px 18px rgba(210, 222, 255, 0.14);
+        transition: transform 0.18s, box-shadow 0.18s;
       }
       .hlink.cta:hover {
-        background: #6d28d9;
+        background: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 8px 26px rgba(210, 222, 255, 0.22);
+      }
+      .hlink.cta:active {
+        transform: translateY(0) scale(0.98);
+      }
+      @media (max-width: 720px) {
+        header nav .hlink:not(.cta) {
+          display: none;
+        }
       }
 
-      /* layout */
+      /* =============================== hero =============================== */
+      .hero {
+        position: relative;
+        min-height: max(660px, calc(100dvh - var(--header-h)));
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      /* backdrop: royal bloom + pleated light streaks, like stage curtains */
+      .hero .bloom {
+        position: absolute;
+        inset: -12% -6%;
+        background:
+          radial-gradient(52% 60% at 38% 8%, rgba(52, 96, 255, 0.62), transparent 68%),
+          radial-gradient(40% 48% at 72% 0%, rgba(36, 66, 220, 0.5), transparent 70%),
+          radial-gradient(38% 44% at 50% 34%, rgba(205, 218, 255, 0.2), transparent 62%),
+          radial-gradient(60% 50% at 46% 52%, rgba(120, 150, 255, 0.12), transparent 70%),
+          linear-gradient(180deg, #0c1738 0%, #071026 55%, var(--bg) 92%);
+      }
+      .hero .streaks {
+        position: absolute;
+        inset: 0;
+        background:
+          repeating-linear-gradient(
+            93deg,
+            transparent 0 34px,
+            rgba(195, 212, 255, 0.085) 34px 40px,
+            transparent 40px 88px,
+            rgba(150, 176, 255, 0.055) 88px 96px
+          );
+        filter: blur(6px);
+        mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 60%, transparent 92%);
+        -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 60%, transparent 92%);
+      }
+      .hero .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(70px);
+        will-change: transform;
+      }
+      .hero .orb.a {
+        width: 480px;
+        height: 480px;
+        left: 30%;
+        top: 6%;
+        background: radial-gradient(circle at 40% 35%, rgba(120, 152, 255, 0.4), rgba(38, 70, 220, 0.12) 60%, transparent 75%);
+        animation: drift-a 26s ease-in-out infinite alternate;
+      }
+      .hero .orb.b {
+        width: 360px;
+        height: 360px;
+        right: 4%;
+        top: 30%;
+        background: radial-gradient(circle at 55% 40%, rgba(214, 226, 255, 0.2), rgba(70, 100, 235, 0.1) 55%, transparent 72%);
+        animation: drift-b 34s ease-in-out infinite alternate;
+      }
+      @keyframes drift-a {
+        to {
+          transform: translate(70px, 46px) scale(1.08);
+        }
+      }
+      @keyframes drift-b {
+        to {
+          transform: translate(-60px, -30px) scale(0.94);
+        }
+      }
+      .hero .vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(120% 90% at 50% 20%, transparent 55%, rgba(2, 4, 10, 0.55) 100%);
+      }
+
+      .heroInner {
+        position: relative;
+        z-index: 2;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        width: 100%;
+        max-width: 1460px;
+        margin: 0 auto;
+        padding: 0 clamp(16px, 3.4vw, 44px);
+      }
+
+      /* floating glass shards — the library demoing itself over the backdrop */
+      .shards {
+        position: absolute;
+        z-index: 3;
+        right: clamp(12px, 5vw, 90px);
+        top: clamp(56px, 12vh, 130px);
+        width: min(460px, 44vw);
+        pointer-events: none;
+      }
+      .shard {
+        will-change: transform;
+      }
+      .shard.s1 {
+        animation: bob-a 11s ease-in-out infinite alternate;
+      }
+      .shard.s2 {
+        margin: 26px 40px 0 0;
+        animation: bob-b 14s ease-in-out infinite alternate;
+      }
+      .shard.s3 {
+        margin: 26px 0 0 auto;
+        width: max-content;
+        animation: bob-a 17s ease-in-out infinite alternate-reverse;
+      }
+      @keyframes bob-a {
+        to {
+          transform: translate(-10px, 14px);
+        }
+      }
+      @keyframes bob-b {
+        to {
+          transform: translate(12px, -10px);
+        }
+      }
+      .gSearch {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 58px;
+        padding: 0 18px;
+        border-radius: 29px;
+        color: rgba(240, 244, 255, 0.9);
+        font-size: 14.5px;
+      }
+      .gSearch svg {
+        flex: none;
+        opacity: 0.75;
+      }
+      .gSearch .ph {
+        flex: 1;
+        color: rgba(226, 233, 255, 0.62);
+      }
+      .gSearch kbd {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: rgba(226, 233, 255, 0.7);
+        border: 1px solid rgba(226, 233, 255, 0.25);
+        border-radius: 6px;
+        padding: 3px 7px;
+      }
+      .gCard {
+        width: min(330px, 78%);
+        padding: 16px 18px 15px;
+        border-radius: var(--r-lg);
+        color: #fff;
+      }
+      .gCard .row1 {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        font-size: 13.5px;
+        font-weight: 550;
+      }
+      .gCard .row1 span {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        color: rgba(226, 233, 255, 0.6);
+      }
+      .gCard .sub2 {
+        font-size: 12px;
+        color: rgba(226, 233, 255, 0.65);
+        margin-top: 2px;
+      }
+      .gCard .track {
+        margin-top: 12px;
+        height: 3px;
+        border-radius: 2px;
+        background: rgba(226, 233, 255, 0.22);
+        overflow: hidden;
+      }
+      .gCard .track i {
+        display: block;
+        width: 42%;
+        height: 100%;
+        background: rgba(244, 248, 255, 0.9);
+        border-radius: 2px;
+      }
+      .gPill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 46px;
+        padding: 0 20px;
+        border-radius: 23px;
+        color: #fff;
+        font-size: 13.5px;
+        font-weight: 550;
+        letter-spacing: 0.01em;
+      }
+      .gPill i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--ok);
+        box-shadow: 0 0 8px var(--ok);
+      }
+
+      .heroCopy {
+        max-width: 780px;
+        padding-bottom: clamp(26px, 4.5vh, 54px);
+      }
+      .kicker {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--mut);
+        letter-spacing: 0.02em;
+        margin-bottom: 18px;
+      }
+      .kicker b {
+        color: #b9c7f5;
+        font-weight: 500;
+      }
+      .hero h1 {
+        font-weight: 500;
+        font-size: clamp(40px, 6.2vw, 82px);
+        line-height: 1.04;
+        letter-spacing: -0.035em;
+        margin: 0 0 20px;
+        text-wrap: balance;
+      }
+      .hero h1 em {
+        font-style: normal;
+        font-weight: 300;
+        color: #b9c9f5;
+      }
+      .hero .sub {
+        max-width: 56ch;
+        color: var(--mut);
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.65;
+        margin: 0 0 26px;
+        text-wrap: pretty;
+      }
+      .hero .sub b {
+        color: #dbe3fb;
+        font-weight: 550;
+      }
+      .heroCtas {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      .btnPrimary {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        background: #f4f6ff;
+        color: #0a0f22;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 13px 24px;
+        border-radius: 999px;
+        box-shadow: 0 6px 26px rgba(190, 208, 255, 0.16);
+        transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+      }
+      .btnPrimary:hover {
+        background: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 34px rgba(190, 208, 255, 0.25);
+      }
+      .btnPrimary:active {
+        transform: translateY(0) scale(0.98);
+      }
+      .btnGhost {
+        color: var(--mut);
+        font-size: 14px;
+        font-weight: 500;
+        transition: color 0.18s;
+      }
+      .btnGhost:hover {
+        color: var(--tx);
+      }
+      .btnGhost::after {
+        content: " →";
+      }
+
+      /* feature strip on a hairline, like the reference */
+      .strip {
+        position: relative;
+        z-index: 2;
+        max-width: 1460px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 0 clamp(16px, 3.4vw, 44px) 34px;
+      }
+      .strip .rule {
+        height: 1px;
+        background: linear-gradient(90deg, rgba(190, 208, 255, 0.45), rgba(190, 208, 255, 0.12) 40%, rgba(190, 208, 255, 0.06));
+        margin-bottom: 22px;
+      }
+      .strip ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 28px;
+      }
+      .strip li {
+        max-width: 240px;
+      }
+      .strip svg {
+        display: block;
+        margin-bottom: 10px;
+        color: #aebdf0;
+      }
+      .strip p {
+        margin: 0;
+        color: var(--mut);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      .strip p b {
+        display: block;
+        color: var(--tx);
+        font-weight: 550;
+        margin-bottom: 2px;
+      }
+      @media (max-width: 900px) {
+        .strip ul {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 560px) {
+        .strip ul {
+          grid-template-columns: 1fr;
+          gap: 18px;
+        }
+        .shards {
+          display: none;
+        }
+        .hero {
+          min-height: 0;
+          padding-top: 60px;
+        }
+      }
+
+      /* ============================ section chrome ============================ */
+      .sec {
+        max-width: 1460px;
+        margin: 0 auto;
+        padding: clamp(56px, 9vh, 110px) clamp(16px, 3.4vw, 44px) 0;
+      }
+      .secHead {
+        max-width: 640px;
+        margin-bottom: 34px;
+      }
+      .secHead h2 {
+        font-weight: 500;
+        font-size: clamp(26px, 3.1vw, 40px);
+        letter-spacing: -0.03em;
+        line-height: 1.08;
+        margin: 0 0 10px;
+        text-wrap: balance;
+      }
+      .secHead h2 em {
+        font-style: normal;
+        font-weight: 300;
+        color: #b9c9f5;
+      }
+      .secHead p {
+        margin: 0;
+        color: var(--mut);
+        font-size: 15px;
+        max-width: 52ch;
+      }
+
+      /* ============================== generator ============================== */
       main {
         display: grid;
-        grid-template-columns: 1fr 360px;
+        grid-template-columns: 1fr 350px;
         gap: 18px;
-        padding: 18px 20px;
-        max-width: 1500px;
-        margin: 0 auto;
       }
       @media (max-width: 980px) {
         main {
           grid-template-columns: 1fr;
         }
-        .stageWrap {
-          position: static;
-          height: auto;
-          min-height: 420px;
+        /* pinned mini-preview: controls scroll beneath, the glass stays visible
+           (main .stageWrap out-specifies the base rule below regardless of order) */
+        main .stageWrap {
+          position: sticky;
+          top: calc(var(--header-h) + 8px);
+          z-index: 40;
+          height: 300px;
+          min-height: 0;
           max-height: none;
+          box-shadow: 0 18px 44px rgba(2, 6, 24, 0.6);
         }
       }
-
-      /* preview stage */
       .stageWrap {
         position: sticky;
-        top: 58px;
+        top: calc(var(--header-h) + 14px);
         align-self: start;
-        height: calc(100dvh - 74px);
+        height: calc(100dvh - var(--header-h) - 28px);
         min-height: 380px;
         max-height: 840px;
         border: 1px solid var(--bd);
-        border-radius: var(--r);
+        border-radius: var(--r-lg);
         overflow: hidden;
-        background: #111;
+        background: #0a0f22;
+        box-shadow: 0 30px 80px rgba(2, 6, 24, 0.55);
       }
       .scene {
         position: absolute;
@@ -194,12 +631,16 @@
         align-items: center;
       }
       .swatch {
-        width: 26px;
-        height: 26px;
+        width: 24px;
+        height: 24px;
         border-radius: 8px;
-        border: 2px solid #ffffff44;
+        border: 2px solid rgba(255, 255, 255, 0.28);
         cursor: pointer;
         padding: 0;
+        transition: transform 0.15s, border-color 0.15s;
+      }
+      .swatch:hover {
+        transform: scale(1.1);
       }
       .swatch.on {
         border-color: #fff;
@@ -212,14 +653,14 @@
         z-index: 5;
         font-size: 11px;
         color: #fff;
-        background: #0008;
+        background: rgba(4, 8, 20, 0.55);
         padding: 6px 10px;
         border-radius: 8px;
         backdrop-filter: blur(8px);
         max-width: 60%;
       }
       .resolved b {
-        color: var(--acc);
+        color: #9db2ff;
       }
       .hintbar {
         position: absolute;
@@ -227,15 +668,15 @@
         bottom: 12px;
         z-index: 5;
         font-size: 11px;
-        color: #fff;
-        background: #0008;
+        color: rgba(255, 255, 255, 0.85);
+        background: rgba(4, 8, 20, 0.55);
         padding: 6px 10px;
         border-radius: 8px;
+        backdrop-filter: blur(8px);
       }
-
-      /* the glass element */
       #glass {
         position: absolute;
+        touch-action: none; /* touch drags move the glass, not the page */
         left: 140px;
         top: 170px;
         width: 340px;
@@ -255,7 +696,7 @@
       }
       #glass .gt {
         font-size: 20px;
-        font-weight: 650;
+        font-weight: 600;
         letter-spacing: -0.01em;
         position: relative;
         z-index: 3;
@@ -270,23 +711,28 @@
 
       /* controls */
       .panel {
-        background: var(--panel);
-        border: 1px solid var(--bd);
-        border-radius: var(--r);
-        padding: 14px;
+        background: var(--panel2);
+        border: 1px solid var(--bd2);
+        border-radius: var(--r-lg);
+        padding: 16px;
       }
       .panel + .panel {
-        margin-top: 14px;
+        margin-top: 12px;
       }
       .ptitle {
         font-size: 11px;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.07em;
         text-transform: uppercase;
-        color: var(--mut);
+        color: var(--mut2);
         margin: 0 0 10px;
         font-weight: 600;
       }
-
+      .ptitle span {
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--mut2);
+        font-weight: 400;
+      }
       .seg {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
@@ -296,16 +742,21 @@
         background: var(--panel2);
         color: var(--mut);
         border: 1px solid var(--bd2);
-        border-radius: 9px;
+        border-radius: var(--r-sm);
         padding: 8px 0;
         font-size: 12px;
-        font-weight: 550;
+        font-weight: 500;
+        transition: color 0.15s, border-color 0.15s, background 0.15s;
+      }
+      .seg button:hover {
+        color: var(--tx);
+        border-color: var(--bd);
       }
       .seg button.on {
         background: var(--acc);
-        color: #15101f;
+        color: #fff;
         border-color: var(--acc);
-        font-weight: 700;
+        font-weight: 600;
       }
       .modeNote {
         font-size: 11px;
@@ -317,7 +768,6 @@
       .modeNote.warn {
         color: var(--warn);
       }
-
       .chips {
         display: flex;
         flex-wrap: wrap;
@@ -330,12 +780,15 @@
         border-radius: 999px;
         padding: 6px 12px;
         font-size: 12px;
+        transition: color 0.15s, border-color 0.15s;
       }
       .chip:hover {
         color: var(--tx);
         border-color: var(--acc);
       }
-
+      .chip:active {
+        transform: scale(0.97);
+      }
       .row {
         margin: 11px 0;
       }
@@ -383,7 +836,7 @@
         transform: translateX(-50%);
         width: 200px;
         max-width: 46vw;
-        background: #15151d;
+        background: #0c1226;
         border: 1px solid var(--bd);
         border-radius: 9px;
         padding: 9px 11px;
@@ -397,7 +850,7 @@
         pointer-events: none;
         transition: opacity 0.12s;
         z-index: 30;
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 10px 28px rgba(2, 6, 24, 0.6);
       }
       .info .tip::after {
         content: "";
@@ -406,7 +859,7 @@
         top: 100%;
         transform: translateX(-50%);
         border: 5px solid transparent;
-        border-top-color: #15151d;
+        border-top-color: #0c1226;
       }
       .info:hover .tip,
       .info:focus .tip {
@@ -418,56 +871,72 @@
         accent-color: var(--acc);
         height: 18px;
       }
-      select {
+      select,
+      input[type="text"] {
         width: 100%;
         background: var(--bg2);
         color: var(--tx);
-        border: 1px solid var(--bd);
-        border-radius: 9px;
-        padding: 8px;
+        border: 1px solid var(--bd2);
+        border-radius: var(--r-sm);
+        padding: 8px 10px;
         font-size: 13px;
+        font-family: inherit;
       }
       .grp {
         font-size: 10px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--mut2);
-        margin: 14px 0 4px;
+        margin: 16px 0 4px;
         font-weight: 600;
       }
+      input[type="color"] {
+        width: 28px;
+        height: 18px;
+        padding: 0;
+        border: 0;
+        background: none;
+        cursor: pointer;
+        vertical-align: middle;
+      }
 
-      /* code */
+      /* ============================== code ============================== */
       .codeSec {
-        max-width: 1500px;
+        max-width: 1460px;
         margin: 0 auto;
-        padding: 4px 20px 40px;
+        padding: 26px clamp(16px, 3.4vw, 44px) 0;
       }
       .tabs {
         display: flex;
-        gap: 6px;
+        gap: 2px;
         flex-wrap: wrap;
-        margin-bottom: 10px;
+        margin-bottom: 0;
+        border-bottom: 1px solid var(--bd2);
       }
       .tab {
-        background: var(--panel2);
-        border: 1px solid var(--bd2);
+        background: none;
+        border: 0;
+        border-bottom: 2px solid transparent;
         color: var(--mut);
-        border-radius: 9px 9px 0 0;
-        padding: 8px 14px;
+        padding: 9px 14px 11px;
         font-size: 13px;
-        font-weight: 550;
+        font-weight: 500;
+        margin-bottom: -1px;
+        transition: color 0.15s;
+      }
+      .tab:hover {
+        color: var(--tx);
       }
       .tab.on {
-        background: var(--panel);
         color: var(--tx);
-        border-color: var(--bd);
-        border-bottom-color: transparent;
+        border-bottom-color: var(--acc);
       }
       .codeBox {
         position: relative;
-        background: #07070b;
-        border: 1px solid var(--bd);
-        border-radius: 0 var(--r) var(--r) var(--r);
+        background: #05070e;
+        border: 1px solid var(--bd2);
+        border-top: 0;
+        border-radius: 0 0 var(--r) var(--r);
         overflow: hidden;
       }
       .copy {
@@ -478,13 +947,17 @@
         background: var(--panel);
         border: 1px solid var(--bd);
         color: var(--tx);
-        border-radius: 8px;
+        border-radius: var(--r-sm);
         padding: 6px 12px;
         font-size: 12px;
         font-weight: 600;
+        transition: border-color 0.15s;
       }
       .copy:hover {
         border-color: var(--acc);
+      }
+      .copy:active {
+        transform: scale(0.97);
       }
       .copy.done {
         color: var(--ok);
@@ -497,363 +970,341 @@
         font-family: var(--mono);
         font-size: 12.5px;
         line-height: 1.6;
-        color: #d6d9e0;
+        color: #ccd3e4;
         max-height: 420px;
       }
       .tok-key {
-        color: #c4b5fd;
+        color: #9db2ff;
       }
       .tok-str {
         color: #86efac;
       }
       .tok-num {
-        color: #fca73c;
+        color: #f8b26a;
       }
       .tok-com {
-        color: #5b6473;
+        color: #55607a;
       }
       .tok-tag {
         color: #7dd3fc;
       }
 
-      footer {
-        border-top: 1px solid var(--bd2);
-        padding: 22px 20px;
-        color: var(--mut2);
-        font-size: 12px;
-        text-align: center;
-      }
-      footer a {
-        color: var(--mut);
-      }
-      footer a:hover {
-        color: var(--acc);
-      }
-
-      /* landing */
-      .hero {
-        max-width: 1500px;
-        margin: 0 auto;
-        padding: 36px 20px 4px;
-        text-align: center;
-      }
-      .eyebrow {
-        display: inline-block;
-        font-size: 12px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--acc);
-        background: rgba(167, 139, 250, 0.1);
-        border: 1px solid rgba(167, 139, 250, 0.25);
-        padding: 6px 14px;
-        border-radius: 999px;
-        margin-bottom: 16px;
-      }
-      .hero h1 {
-        font-size: clamp(28px, 4.4vw, 50px);
-        line-height: 1.06;
-        letter-spacing: -0.03em;
-        margin: 0 0 14px;
-        font-weight: 720;
-      }
-      .hero h1 .g {
-        background: linear-gradient(120deg, #fff, var(--acc) 60%, #22d3ee);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-      }
-      .hero p.sub {
-        max-width: 680px;
-        margin: 0 auto 18px;
-        color: var(--mut);
-        font-size: 16px;
-      }
-      .hchips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        justify-content: center;
-      }
-      .hchip {
-        font-size: 12.5px;
-        color: var(--tx);
-        background: var(--panel);
-        border: 1px solid var(--bd);
-        border-radius: 999px;
-        padding: 7px 14px;
-      }
-      .hchip b {
-        color: var(--acc);
-      }
-      .sec {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 42px 20px;
-      }
-      .sec h2 {
-        font-size: 24px;
-        letter-spacing: -0.02em;
-        text-align: center;
-        margin: 0 0 6px;
-      }
-      .sec .lede {
-        text-align: center;
-        color: var(--mut);
-        max-width: 640px;
-        margin: 0 auto 28px;
-      }
+      /* ============================ how it works ============================ */
       .steps {
+        border-top: 1px solid var(--bd2);
+      }
+      .stepRow {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
+        grid-template-columns: 130px 1fr;
+        gap: 20px;
+        align-items: baseline;
+        padding: 26px 0;
+        border-bottom: 1px solid var(--bd2);
       }
-      @media (max-width: 760px) {
-        .steps {
-          grid-template-columns: 1fr;
-        }
+      .stepRow .n {
+        font-weight: 200;
+        font-size: 40px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: #7d90cc;
+        font-variant-numeric: tabular-nums;
       }
-      .step {
-        background: var(--panel);
-        border: 1px solid var(--bd);
-        border-radius: 14px;
-        padding: 20px;
-      }
-      .step .n {
-        width: 30px;
-        height: 30px;
-        border-radius: 9px;
-        background: var(--acc2);
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        margin-bottom: 12px;
-      }
-      .step h3 {
-        margin: 0 0 5px;
+      .stepRow h3 {
+        margin: 0 0 4px;
         font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
       }
-      .step p {
+      .stepRow p {
         margin: 0;
         color: var(--mut);
-        font-size: 13.5px;
+        font-size: 14px;
+        max-width: 62ch;
       }
-      .step code {
-        background: #07070b;
+      .stepRow code {
+        background: #05070e;
         border: 1px solid var(--bd2);
         border-radius: 5px;
         padding: 1px 6px;
         font-family: var(--mono);
         font-size: 12px;
-        color: var(--acc);
+        color: #9db2ff;
       }
+      @media (max-width: 640px) {
+        .stepRow {
+          grid-template-columns: 64px 1fr;
+        }
+        .stepRow .n {
+          font-size: 32px;
+        }
+      }
+
+      /* ============================== engines ============================== */
       .etable {
         width: 100%;
         border-collapse: collapse;
         font-size: 13.5px;
-        background: var(--panel);
-        border: 1px solid var(--bd);
-        border-radius: 14px;
-        overflow: hidden;
+        border-top: 1px solid var(--bd);
       }
       .etable th,
       .etable td {
-        padding: 11px 14px;
+        padding: 13px 14px 13px 0;
         text-align: left;
         border-bottom: 1px solid var(--bd2);
-      }
-      .etable tr:last-child td {
-        border-bottom: 0;
+        vertical-align: top;
       }
       .etable th {
-        color: var(--mut);
+        color: var(--mut2);
         font-size: 11px;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.05em;
         font-weight: 600;
       }
       .etable td:first-child {
-        font-weight: 650;
-        color: var(--acc);
+        font-family: var(--mono);
+        font-size: 13px;
+        color: #9db2ff;
+        white-space: nowrap;
       }
       .etable .y {
         color: var(--ok);
-        font-weight: 600;
+        font-weight: 550;
       }
       .etable .x {
         color: var(--mut2);
       }
+      .tableWrap {
+        overflow-x: auto;
+      }
+      .tableWrap table {
+        min-width: 640px;
+      }
+
+      /* ============================== footer ============================== */
+      footer {
+        max-width: 1460px;
+        margin: clamp(56px, 9vh, 110px) auto 0;
+        padding: 26px clamp(16px, 3.4vw, 44px) 40px;
+        border-top: 1px solid var(--bd2);
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        flex-wrap: wrap;
+        color: var(--mut2);
+        font-size: 12.5px;
+      }
+      footer .sp {
+        flex: 1;
+      }
+      footer a {
+        color: var(--mut);
+        transition: color 0.15s;
+      }
+      footer a:hover {
+        color: var(--tx);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+        .orb,
+        .shard {
+          animation: none !important;
+        }
+        * {
+          transition-duration: 0.01ms !important;
+        }
+      }
     </style>
   </head>
   <body>
+    <a class="skip" href="#generator">Skip to the generator</a>
     <header>
-      <div class="brand">
-        <div class="logo"></div>
-        Glasskit <small>generator</small>
-      </div>
+      <a class="brand" href="#top" aria-label="Glasskit home">
+        <span class="logo" aria-hidden="true"></span>
+        Glasskit
+      </a>
       <div class="sp"></div>
-      <a class="hlink" href="./benchmark.html">Benchmark ↗</a>
-      <a
-        class="hlink"
-        href="https://github.com/amanblog/glasskit"
-        target="_blank"
-        >GitHub</a
-      >
-      <a
-        class="hlink cta"
-        href="https://www.npmjs.com/package/glasskit-js"
-        target="_blank"
-        >npm i glasskit-js</a
-      >
+      <nav aria-label="Site">
+        <a class="hlink" href="#generator">Generator</a>
+        <a class="hlink" href="#engines">Engines</a>
+        <a class="hlink" href="./benchmark.html">Benchmark</a>
+        <a class="hlink" href="https://github.com/amanblog/glasskit" target="_blank" rel="noopener">GitHub</a>
+        <a class="hlink cta" href="https://www.npmjs.com/package/glasskit-js" target="_blank" rel="noopener">npm i glasskit-js</a>
+      </nav>
     </header>
 
-    <section class="hero">
-      <div class="eyebrow">Apple / Figma Liquid Glass · for the web</div>
-      <h1>
-        Real glass.<br /><span class="g">Any element. Any framework.</span>
-      </h1>
-      <p class="sub">
-        Tune it visually, switch the rendering engine, and copy the code for
-        React, Vue, vanilla, web component, CSS or Tailwind. The only Liquid
-        Glass tool with <b>true refraction that works beyond Chrome</b>.
-      </p>
-      <div class="hchips">
-        <span class="hchip"><b>4 engines</b> · CSS · SVG · Clone · WebGL</span>
-        <span class="hchip">Cross-browser refraction</span>
-        <span class="hchip">Any shape</span>
-        <span class="hchip">Perf benchmark</span>
-        <span class="hchip">Zero dependencies</span>
+    <section class="hero" id="top">
+      <div class="bloom" aria-hidden="true"></div>
+      <div class="streaks" aria-hidden="true"></div>
+      <div class="orb a" aria-hidden="true"></div>
+      <div class="orb b" aria-hidden="true"></div>
+      <div class="vignette" aria-hidden="true"></div>
+
+      <!-- live glasskit elements refracting the backdrop -->
+      <div class="shards" aria-hidden="true">
+        <div class="shard s1">
+          <div class="gSearch" data-hero-glass data-radius="29">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="7" cy="7" r="4.5" />
+              <path d="M10.5 10.5 14 14" stroke-linecap="round" />
+            </svg>
+            <span class="ph">Search anything…</span>
+            <kbd>⌘K</kbd>
+          </div>
+        </div>
+        <div class="shard s2">
+          <div class="gCard" data-hero-glass data-radius="20">
+            <div class="row1">Now playing <span>svg · 60fps</span></div>
+            <div class="sub2">Refraction — the backdrop, bent live</div>
+            <div class="track"><i></i></div>
+          </div>
+        </div>
+        <div class="shard s3">
+          <span class="gPill" data-hero-glass data-radius="23"><i></i>Rendering live</span>
+        </div>
+      </div>
+
+      <div class="heroInner">
+        <div class="heroCopy">
+          <p class="kicker"><b>glasskit-js</b> · Apple / Figma liquid glass · zero dependencies</p>
+          <h1>Glass that bends<br /><em>the light behind it.</em></h1>
+          <p class="sub">
+            Liquid Glass for any element — tune it visually, switch between
+            <b>CSS, SVG, clone and WebGL</b> rendering, and copy production code
+            for React, Vue, vanilla, web component or Tailwind. Real refraction,
+            in every browser.
+          </p>
+          <div class="heroCtas">
+            <a class="btnPrimary" href="#generator">Open the generator</a>
+            <a class="btnGhost" href="https://github.com/amanblog/glasskit" target="_blank" rel="noopener">View on GitHub</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="strip">
+        <div class="rule" aria-hidden="true"></div>
+        <ul>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <rect x="2.5" y="2.5" width="9" height="9" rx="2" />
+              <rect x="8.5" y="8.5" width="9" height="9" rx="2" />
+            </svg>
+            <p><b>Four engines, one switch</b> CSS, SVG displacement, clone mode and WebGL — per element.</p>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <circle cx="10" cy="10" r="7.5" />
+              <path d="M2.5 10h15M10 2.5c-4.5 4.8-4.5 10.2 0 15 4.5-4.8 4.5-10.2 0-15Z" />
+            </svg>
+            <p><b>Beyond Chromium</b> Real refraction that also works in Safari and Firefox.</p>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <circle cx="7" cy="7" r="4.5" />
+              <rect x="9.5" y="9.5" width="8" height="8" rx="2.5" />
+            </svg>
+            <p><b>Any shape, any framework</b> Cards, pills, circles — vanilla, React or a web component.</p>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M10 2.5 3 6v8l7 3.5L17 14V6l-7-3.5Z" />
+              <path d="M10 9.5v8M3 6l7 3.5L17 6" />
+            </svg>
+            <p><b>Zero dependencies</b> One file, a few kB gzipped, MIT licensed.</p>
+          </li>
+        </ul>
       </div>
     </section>
 
-    <main>
-      <!-- preview -->
-      <section class="stageWrap" id="stage">
-        <div class="scene" id="sceneDom"></div>
-        <canvas id="sceneCanvas"></canvas>
-        <div class="stageBar" id="swatches"></div>
-        <div class="resolved" id="resolved"></div>
-        <div class="hintbar">Drag the glass over the artwork ↔</div>
-        <div id="glass">
-          <div class="gt">Liquid Glass</div>
-          <div class="gs">tune me on the right →</div>
-        </div>
-      </section>
+    <section class="sec" id="generator">
+      <div class="secHead">
+        <h2>The <em>generator.</em></h2>
+        <p>
+          Drag the glass over the artwork, tune the sliders — they mirror
+          Figma's Glass panel — then copy the code in your framework.
+        </p>
+      </div>
 
-      <!-- controls -->
-      <aside>
-        <div class="panel">
-          <p class="ptitle">
-            Engine
-            <span style="text-transform: none; color: var(--mut2)"
-              >— the switch nobody else has</span
-            >
-          </p>
-          <div class="seg" id="modeSeg">
-            <button data-m="auto">Auto</button>
-            <button data-m="css">CSS</button>
-            <button data-m="svg" class="on">SVG</button>
-            <button data-m="svg-clone">Clone</button>
-            <button data-m="webgl">WebGL</button>
+      <main>
+        <!-- preview -->
+        <section class="stageWrap" id="stage" aria-label="Live glass preview">
+          <div class="scene" id="sceneDom"></div>
+          <canvas id="sceneCanvas"></canvas>
+          <div class="stageBar" id="swatches"></div>
+          <div class="resolved" id="resolved"></div>
+          <div class="hintbar">Drag the glass over the artwork ↔</div>
+          <div id="glass">
+            <div class="gt">Liquid Glass</div>
+            <div class="gs">tune me on the right →</div>
           </div>
-          <div class="modeNote" id="modeNote"></div>
-        </div>
+        </section>
 
-        <div class="panel">
-          <p class="ptitle">Presets</p>
-          <div class="chips" id="presets"></div>
-        </div>
+        <!-- controls -->
+        <aside aria-label="Glass controls">
+          <div class="panel">
+            <p class="ptitle">Engine <span>— the switch nobody else has</span></p>
+            <div class="seg" id="modeSeg">
+              <button data-m="auto">Auto</button>
+              <button data-m="css">CSS</button>
+              <button data-m="svg">SVG</button>
+              <button data-m="svg-clone">Clone</button>
+              <button data-m="webgl" class="on">WebGL</button>
+            </div>
+            <div class="modeNote" id="modeNote"></div>
+          </div>
 
-        <div class="panel">
-          <p class="ptitle">Parameters</p>
-          <div class="row">
-            <label>Shape <b id="shapeV"></b></label>
-            <select id="shape">
-              <option value="card">Rounded card</option>
-              <option value="button">Button</option>
-              <option value="pill">Pill</option>
-              <option value="circle">Circle</option>
-              <option value="square">Sharp square</option>
-            </select>
+          <div class="panel">
+            <p class="ptitle">Presets</p>
+            <div class="chips" id="presets"></div>
           </div>
-          <div class="grp">Figma params</div>
-          <div id="figmaSliders"></div>
-          <div class="grp">Optical extras</div>
-          <div id="opticalSliders"></div>
-          <div class="row" id="tintColorRow">
-            <label
-              >Tint color
-              <b
-                ><input
-                  type="color"
-                  id="tintColor"
-                  value="#ffffff"
-                  style="
-                    width: 28px;
-                    height: 18px;
-                    padding: 0;
-                    border: 0;
-                    background: none;
-                    cursor: pointer;
-                    vertical-align: middle;
-                  " /></b
-            ></label>
+
+          <div class="panel">
+            <p class="ptitle">Parameters</p>
+            <div class="row">
+              <label for="shape">Shape <b id="shapeV"></b></label>
+              <select id="shape">
+                <option value="card">Rounded card</option>
+                <option value="button">Button</option>
+                <option value="pill">Pill</option>
+                <option value="circle">Circle</option>
+                <option value="square">Sharp square</option>
+              </select>
+            </div>
+            <div class="grp">Figma params</div>
+            <div id="figmaSliders"></div>
+            <div class="grp">Optical extras</div>
+            <div id="opticalSliders"></div>
+            <div class="row" id="tintColorRow">
+              <label>Tint color <b><input type="color" id="tintColor" value="#ffffff" /></b></label>
+            </div>
+            <div class="row" id="sheenColorRow">
+              <label>Sheen color <b><input type="color" id="sheenColor" value="#ffffff" /></b></label>
+            </div>
+            <div class="grp">Drop shadow</div>
+            <div class="row">
+              <select id="shadowPreset" aria-label="Drop shadow preset">
+                <option value="0 8px 30px rgba(0,0,0,0.18)">Default</option>
+                <option value="none">None</option>
+                <option value="0 4px 16px rgba(0,0,0,0.12)">Soft</option>
+                <option value="0 24px 70px rgba(0,0,0,0.45)">Strong</option>
+                <option value="__custom">Custom…</option>
+              </select>
+            </div>
+            <div class="row" id="shadowCustomRow" style="display: none">
+              <input id="shadowCustom" type="text" placeholder="e.g. 0 10px 40px rgba(0,0,0,.3)" aria-label="Custom box-shadow" />
+            </div>
+            <div class="grp">Advanced</div>
+            <div id="advancedSliders"></div>
           </div>
-          <div class="row" id="sheenColorRow">
-            <label
-              >Sheen color
-              <b
-                ><input
-                  type="color"
-                  id="sheenColor"
-                  value="#ffffff"
-                  style="
-                    width: 28px;
-                    height: 18px;
-                    padding: 0;
-                    border: 0;
-                    background: none;
-                    cursor: pointer;
-                    vertical-align: middle;
-                  " /></b
-            ></label>
-          </div>
-          <div class="grp">Drop shadow</div>
-          <div class="row">
-            <select id="shadowPreset">
-              <option value="0 8px 30px rgba(0,0,0,0.18)">Default</option>
-              <option value="none">None</option>
-              <option value="0 4px 16px rgba(0,0,0,0.12)">Soft</option>
-              <option value="0 24px 70px rgba(0,0,0,0.45)">Strong</option>
-              <option value="__custom">Custom…</option>
-            </select>
-          </div>
-          <div class="row" id="shadowCustomRow" style="display: none">
-            <input
-              id="shadowCustom"
-              type="text"
-              placeholder="e.g. 0 10px 40px rgba(0,0,0,.3)"
-              style="
-                width: 100%;
-                background: var(--bg2);
-                color: var(--tx);
-                border: 1px solid var(--bd);
-                border-radius: 9px;
-                padding: 8px;
-                font-size: 13px;
-              "
-            />
-          </div>
-          <div class="grp">Advanced</div>
-          <div id="advancedSliders"></div>
-        </div>
-      </aside>
-    </main>
+        </aside>
+      </main>
+    </section>
 
     <!-- code export -->
-    <section class="codeSec">
-      <div class="tabs" id="tabs"></div>
+    <section class="codeSec" aria-label="Generated code">
+      <div class="tabs" id="tabs" role="tablist"></div>
       <div class="codeBox">
         <button class="copy" id="copyBtn">Copy</button>
         <pre id="code"></pre>
@@ -861,100 +1312,122 @@
     </section>
 
     <section class="sec">
-      <h2>How it works</h2>
-      <p class="lede">From idea to production code in three steps.</p>
+      <div class="secHead">
+        <h2>Idea to production, <em>in three moves.</em></h2>
+      </div>
       <div class="steps">
-        <div class="step">
-          <div class="n">1</div>
-          <h3>Tune</h3>
-          <p>
-            Drag the sliders — they mirror Figma's Glass panel exactly. Or start
-            from a preset.
-          </p>
+        <div class="stepRow">
+          <div class="n">01</div>
+          <div>
+            <h3>Tune</h3>
+            <p>Drag the sliders — they mirror Figma's Glass panel exactly. Or start from a preset and adjust from there.</p>
+          </div>
         </div>
-        <div class="step">
-          <div class="n">2</div>
-          <h3>Switch engine</h3>
-          <p>
-            CSS for everywhere, SVG / Clone for real refraction, WebGL for fixed
-            backgrounds. See the trade-off live.
-          </p>
+        <div class="stepRow">
+          <div class="n">02</div>
+          <div>
+            <h3>Switch the engine</h3>
+            <p>CSS for everywhere, SVG or clone for real refraction, WebGL for fixed backgrounds. The trade-off is visible live, and the <a href="./benchmark.html" style="color:#9db2ff">benchmark</a> puts numbers on it.</p>
+          </div>
         </div>
-        <div class="step">
-          <div class="n">3</div>
-          <h3>Copy &amp; ship</h3>
-          <p>
-            Grab the code in your framework, or <code>npm i glasskit-js</code>.
-            Benchmark the cost first.
-          </p>
+        <div class="stepRow">
+          <div class="n">03</div>
+          <div>
+            <h3>Copy and ship</h3>
+            <p>Grab the code in your framework, or <code>npm i glasskit-js</code> — one file, zero dependencies, types included.</p>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="sec">
-      <h2>The four engines</h2>
-      <p class="lede">
-        Most tools pick one technique. Glasskit lets you switch — and tells you
-        the catch.
-      </p>
-      <table class="etable">
-        <thead>
-          <tr>
-            <th>Engine</th>
-            <th>Real refraction</th>
-            <th>Browsers</th>
-            <th>Refracts</th>
-            <th>Best for</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>css</td>
-            <td class="x">no (blur)</td>
-            <td>all</td>
-            <td>live backdrop</td>
-            <td>default UI, mobile, Safari/FF</td>
-          </tr>
-          <tr>
-            <td>svg</td>
-            <td class="y">yes</td>
-            <td>Chromium</td>
-            <td>live backdrop</td>
-            <td>the “wow” surface on Chrome</td>
-          </tr>
-          <tr>
-            <td>svg-clone</td>
-            <td class="y">yes</td>
-            <td>all</td>
-            <td>a cloned DOM element</td>
-            <td>cross-browser refraction</td>
-          </tr>
-          <tr>
-            <td>webgl</td>
-            <td class="y">yes</td>
-            <td>all</td>
-            <td>img / canvas / video</td>
-            <td>hero over a fixed background</td>
-          </tr>
-          <tr>
-            <td>auto</td>
-            <td>—</td>
-            <td>—</td>
-            <td>—</td>
-            <td>picks the best for each browser</td>
-          </tr>
-        </tbody>
-      </table>
+    <section class="sec" id="engines">
+      <div class="secHead">
+        <h2>Four engines, <em>one switch.</em></h2>
+        <p>Most tools pick one technique. Glasskit lets you change it per element — and tells you the catch.</p>
+      </div>
+      <div class="tableWrap">
+        <table class="etable">
+          <thead>
+            <tr>
+              <th>Engine</th>
+              <th>Real refraction</th>
+              <th>Browsers</th>
+              <th>Refracts</th>
+              <th>Best for</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>css</td>
+              <td class="x">no (blur)</td>
+              <td>all</td>
+              <td>live backdrop</td>
+              <td>default UI, mobile, Safari/FF</td>
+            </tr>
+            <tr>
+              <td>svg</td>
+              <td class="y">yes</td>
+              <td>Chromium</td>
+              <td>live backdrop</td>
+              <td>the “wow” surface on Chrome</td>
+            </tr>
+            <tr>
+              <td>svg-clone</td>
+              <td class="y">yes</td>
+              <td>all</td>
+              <td>a cloned DOM element</td>
+              <td>cross-browser refraction</td>
+            </tr>
+            <tr>
+              <td>webgl</td>
+              <td class="y">yes</td>
+              <td>all</td>
+              <td>img / canvas / video</td>
+              <td>hero over a fixed background</td>
+            </tr>
+            <tr>
+              <td>auto</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td>picks the best for each browser</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <footer>
-      Glasskit — open source, MIT. Real refraction via SVG displacement & WebGL,
-      with a pure-CSS fallback. ·
-      <a href="./benchmark.html">Run the performance benchmark →</a> ·
-      <a href="https://www.npmjs.com/package/glasskit-js">npm</a>
+      <span>Glasskit — open source, MIT.</span>
+      <div class="sp"></div>
+      <a href="https://github.com/amanblog/glasskit" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/glasskit-js" target="_blank" rel="noopener">npm</a>
+      <a href="./benchmark.html">Benchmark</a>
+      <a href="https://github.com/amanblog/glasskit/blob/main/LICENSE" target="_blank" rel="noopener">License</a>
     </footer>
 
-    <script src="./liquid-glass.js?v=9"></script>
-    <script src="./app.js?v=9"></script>
+    <script src="./liquid-glass.js?v=10"></script>
+    <script src="./app.js?v=10"></script>
+    <script>
+      /* hero shards — the library demoing itself over the animated backdrop */
+      (function () {
+        if (!window.Glasskit) return;
+        document.querySelectorAll("[data-hero-glass]").forEach(function (el) {
+          Glasskit.apply(el, {
+            mode: "auto",
+            frost: 5,
+            refraction: 70,
+            depth: 14,
+            dispersion: 0,
+            bevel: 0.6,
+            sheen: 0,
+            tintOpacity: 0.05,
+            lightAngle: -35,
+            radius: parseFloat(el.dataset.radius) || null,
+            shadow: "0 18px 50px rgba(2, 8, 40, 0.35)",
+          });
+        });
+      })();
+    </script>
   </body>
 </html>
